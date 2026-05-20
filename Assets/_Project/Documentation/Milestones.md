@@ -17,6 +17,8 @@
 - [x] Fix: KingsGameManager wired to TutorialController (ShowTutorial + OnTutorialComplete)
 - [x] Fix: OnConflictDetected subscribed to KingsGridRenderer.HighlightConflicts
 - [x] Fix: LevelData and LevelLoader are now sealed
+- [x] Scene setup guide (SceneSetupGuide.md — hierarchy, SerializeField wiring, mismatches)
+- [ ] HudController script (TimerText + MoveCountText live update — see SceneSetupGuide §7 MISMATCH 3)
 - [ ] Polish & internal build
 
 ## Milestone 2: Level Generation + Progression
