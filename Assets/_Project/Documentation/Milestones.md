@@ -11,7 +11,12 @@
 - [x] KingsLevelGenerator Editor tool (BrainBattle/Generate Kings Levels menu)
 - [x] Undo, Restart, Tips UI
 - [x] Tutorial overlay
-- [ ] Victory screen
+- [x] Victory screen (VictoryPanel.cs — time, moves, star rating, next level, restart)
+- [x] Scene bootstrap / game orchestrator (KingsSceneBootstrap.cs)
+- [x] Fix: KingsGridRenderer.OnCellTapped now uses `event` keyword
+- [x] Fix: KingsGameManager wired to TutorialController (ShowTutorial + OnTutorialComplete)
+- [x] Fix: OnConflictDetected subscribed to KingsGridRenderer.HighlightConflicts
+- [x] Fix: LevelData and LevelLoader are now sealed
 - [ ] Polish & internal build
 
 ## Milestone 2: Level Generation + Progression

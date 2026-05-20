@@ -3,7 +3,7 @@ using BrainBattle.Core.Models;
 
 namespace BrainBattle.Kings
 {
-    public class LevelLoader : MonoBehaviour
+    public sealed class LevelLoader : MonoBehaviour
     {
         [SerializeField] private LevelData[] _allLevels;
 

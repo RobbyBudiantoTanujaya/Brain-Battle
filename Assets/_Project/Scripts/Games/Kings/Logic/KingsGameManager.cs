@@ -4,6 +4,7 @@ using UnityEngine;
 using BrainBattle.Core.Engine;
 using BrainBattle.Core.Models;
 using BrainBattle.Games.Kings.UI;
+using BrainBattle.Kings;
 
 namespace BrainBattle.Games.Kings.Logic
 {
@@ -14,8 +15,9 @@ namespace BrainBattle.Games.Kings.Logic
         private const string SaveKeyTime    = "Kings_Time";
         private const string SaveKeyMoves   = "Kings_Moves";
 
-        [SerializeField] private KingsGridRenderer _gridRenderer;
-        [SerializeField] private GridData          _currentGrid;
+        [SerializeField] private KingsGridRenderer  _gridRenderer;
+        [SerializeField] private GridData           _currentGrid;
+        [SerializeField] private TutorialController _tutorialController;
 
         // ── Events ────────────────────────────────────────────────────────────────
 
@@ -33,7 +35,9 @@ namespace BrainBattle.Games.Kings.Logic
             : _timerOffset;
 
         /// <summary>Total CycleState calls made this session. Not decremented by undo.</summary>
-        public int MoveCount => _moveCount;
+        public int MoveCount       => _moveCount;
+        public int CurrentGridSize => _currentGrid?.Size ?? 0;
+        public int HintsUsed       { get; private set; }
 
         // ── Private state ─────────────────────────────────────────────────────────
 
@@ -54,12 +58,16 @@ namespace BrainBattle.Games.Kings.Logic
         {
             if (_gridRenderer != null)
                 _gridRenderer.OnCellTapped += OnCellTapped;
+            if (_tutorialController != null)
+                _tutorialController.OnTutorialComplete += OnTutorialCompleted;
         }
 
         private void OnDisable()
         {
             if (_gridRenderer != null)
                 _gridRenderer.OnCellTapped -= OnCellTapped;
+            if (_tutorialController != null)
+                _tutorialController.OnTutorialComplete -= OnTutorialCompleted;
         }
 
         private void OnApplicationPause(bool paused)
@@ -89,6 +97,7 @@ namespace BrainBattle.Games.Kings.Logic
 
             _undoStack.Clear();
             _moveCount  = 0;
+            HintsUsed   = 0;
             _gameActive = true;
 
             ResetTimer();
@@ -96,6 +105,10 @@ namespace BrainBattle.Games.Kings.Logic
             _gridRenderer.ClearConflicts();
             _gridRenderer.RenderGrid(_currentGrid);
             FireUndoStackChanged();
+
+            OnConflictDetected -= _gridRenderer.HighlightConflicts;
+            OnConflictDetected += _gridRenderer.HighlightConflicts;
+            _tutorialController?.ShowTutorial();
         }
 
         public void DoUndo()
@@ -118,6 +131,7 @@ namespace BrainBattle.Games.Kings.Logic
             _currentGrid = DeepCopy(_initialGrid);
             _undoStack.Clear();
             _moveCount  = 0;
+            HintsUsed   = 0;
             _gameActive = true;
 
             ResetTimer();
@@ -134,7 +148,12 @@ namespace BrainBattle.Games.Kings.Logic
         /// one cell where a crown can currently be placed without violating any constraint.
         /// Positions in returned hints use the project convention: Vector2Int(col, row).
         /// </summary>
-        public List<string> GetHints() => GetHints(_currentGrid);
+        public List<string> GetHints()
+        {
+            var hints = GetHints(_currentGrid);
+            if (hints.Count > 0) HintsUsed++;
+            return hints;
+        }
 
         public List<string> GetHints(GridData grid)
         {
@@ -194,7 +213,6 @@ namespace BrainBattle.Games.Kings.Logic
             var result = ConstraintValidator.ValidateMove(_currentGrid, row, col, newState);
             if (!result.IsValid)
             {
-                _gridRenderer.HighlightConflicts(result.ConflictPositions);
                 OnConflictDetected?.Invoke(result.ConflictPositions);
                 return;
             }
@@ -222,6 +240,7 @@ namespace BrainBattle.Games.Kings.Logic
         }
 
         private void FireUndoStackChanged() => OnUndoStackChanged?.Invoke(_undoStack.Count > 0);
+        private void OnTutorialCompleted() { }
 
         // ── Private: undo ─────────────────────────────────────────────────────────
 

@@ -22,7 +22,7 @@ namespace BrainBattle.Games.Kings.UI
         [SerializeField] private float  _pulseSpeed      = 0.3f;
 
         /// <summary>Fired when the user taps a cell. Args: (row, col).</summary>
-        public Action<int, int> OnCellTapped;
+        public event Action<int, int> OnCellTapped;
 
         private GridData            _currentGrid;
         private RectTransform       _self;

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace BrainBattle.Kings
 {
     [CreateAssetMenu(fileName = "KingsLevel", menuName = "BrainBattle/Kings/Level")]
-    public class LevelData : ScriptableObject
+    public sealed class LevelData : ScriptableObject
     {
         [SerializeField] private int                 _levelNumber;
         [SerializeField] private string              _difficulty;
