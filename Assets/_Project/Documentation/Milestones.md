@@ -6,7 +6,8 @@
 - [x] Unit tests ConstraintValidator
 - [x] KingsGridRenderer
 - [x] KingsGameManager
-- [ ] KingsLevelGenerator (5 hardcoded levels)
+- [x] LevelData + LevelLoader (ScriptableObject schema)
+- [x] Runtime LevelGeneratorService (NQueensSolver, RegionBuilder, UniquenessVerifier)
 - [ ] Undo, Restart, Tips UI
 - [ ] Tutorial overlay
 - [ ] Victory screen

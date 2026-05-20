@@ -28,6 +28,23 @@ namespace BrainBattle.Kings
             public int          RegionId => _regionId;
             public Color        Color    => _color;
             public Vector2Int[] Cells    => _cells;
+
+            public void Init(int regionId, Color color, Vector2Int[] cells)
+            {
+                _regionId = regionId;
+                _color    = color;
+                _cells    = cells;
+            }
+        }
+
+        public void EditorInit(int levelNumber, string difficulty, int gridSize,
+                               RegionDefinition[] regions, Vector2Int[] solution)
+        {
+            _levelNumber = levelNumber;
+            _difficulty  = difficulty;
+            _gridSize    = gridSize;
+            _regions     = regions;
+            _solution    = solution;
         }
     }
 }
