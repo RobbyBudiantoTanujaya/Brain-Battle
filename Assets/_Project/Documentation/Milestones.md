@@ -18,6 +18,7 @@
 - [x] Fix: OnConflictDetected subscribed to KingsGridRenderer.HighlightConflicts
 - [x] Fix: LevelData and LevelLoader are now sealed
 - [x] Scene setup guide (SceneSetupGuide.md — hierarchy, SerializeField wiring, mismatches)
+- [x] KingsSceneBuilder editor tool (BrainBattle/Build Kings Scene — auto-builds and wires full hierarchy)
 - [ ] HudController script (TimerText + MoveCountText live update — see SceneSetupGuide §7 MISMATCH 3)
 - [ ] Polish & internal build
 
