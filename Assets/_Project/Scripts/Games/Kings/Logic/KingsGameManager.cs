@@ -22,6 +22,8 @@ namespace BrainBattle.Games.Kings.Logic
         public event Action                   OnWin;
         public event Action<float, int>       OnGameComplete;
         public event Action<List<Vector2Int>> OnConflictDetected;
+        // Fired after every move, undo, start, and restart. bool = undo stack is non-empty.
+        public event Action<bool>             OnUndoStackChanged;
 
         // ── Public properties ─────────────────────────────────────────────────────
 
@@ -93,6 +95,7 @@ namespace BrainBattle.Games.Kings.Logic
 
             _gridRenderer.ClearConflicts();
             _gridRenderer.RenderGrid(_currentGrid);
+            FireUndoStackChanged();
         }
 
         public void DoUndo()
@@ -105,6 +108,7 @@ namespace BrainBattle.Games.Kings.Logic
             _gridRenderer.RenderGrid(_currentGrid);
 
             AutoSave();
+            FireUndoStackChanged();
         }
 
         public void RestartGame()
@@ -122,6 +126,7 @@ namespace BrainBattle.Games.Kings.Logic
             _gridRenderer.RenderGrid(_currentGrid);
 
             AutoSave();
+            FireUndoStackChanged();
         }
 
         /// <summary>
@@ -129,6 +134,8 @@ namespace BrainBattle.Games.Kings.Logic
         /// one cell where a crown can currently be placed without violating any constraint.
         /// Positions in returned hints use the project convention: Vector2Int(col, row).
         /// </summary>
+        public List<string> GetHints() => GetHints(_currentGrid);
+
         public List<string> GetHints(GridData grid)
         {
             if (grid == null) return new List<string>(0);
@@ -174,6 +181,7 @@ namespace BrainBattle.Games.Kings.Logic
             if (!_gameActive || _currentGrid == null || _gridRenderer == null) return;
 
             PushUndoSnapshot();
+            FireUndoStackChanged();
 
             _currentGrid.CycleState(row, col);
             _moveCount++;
@@ -212,6 +220,8 @@ namespace BrainBattle.Games.Kings.Logic
             PlayerPrefs.DeleteKey(SaveKeyMoves);
             PlayerPrefs.Save();
         }
+
+        private void FireUndoStackChanged() => OnUndoStackChanged?.Invoke(_undoStack.Count > 0);
 
         // ── Private: undo ─────────────────────────────────────────────────────────
 

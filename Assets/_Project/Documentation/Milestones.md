@@ -9,7 +9,7 @@
 - [x] LevelData + LevelLoader (ScriptableObject schema)
 - [x] Runtime LevelGeneratorService (NQueensSolver, RegionBuilder, UniquenessVerifier)
 - [x] KingsLevelGenerator Editor tool (BrainBattle/Generate Kings Levels menu)
-- [ ] Undo, Restart, Tips UI
+- [x] Undo, Restart, Tips UI
 - [ ] Tutorial overlay
 - [ ] Victory screen
 - [ ] Polish & internal build
