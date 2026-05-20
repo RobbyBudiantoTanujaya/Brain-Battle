@@ -10,7 +10,7 @@
 - [x] Runtime LevelGeneratorService (NQueensSolver, RegionBuilder, UniquenessVerifier)
 - [x] KingsLevelGenerator Editor tool (BrainBattle/Generate Kings Levels menu)
 - [x] Undo, Restart, Tips UI
-- [ ] Tutorial overlay
+- [x] Tutorial overlay
 - [ ] Victory screen
 - [ ] Polish & internal build
 
