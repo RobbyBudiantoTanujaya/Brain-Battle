@@ -41,3 +41,38 @@ Assets/_Project/
 - Multiplayer / PvP (Milestone 5)
 - Audio (Milestone 6)
 - Game #2+ (Milestone 4+)
+
+## Level Generation
+- Full algorithm documented in Assets/_Project/Documentation/KingsLevelGeneration.md
+- ALWAYS read this file before any level generation task
+- NEVER manually compute levels, always write code that runs at editor-time
+- Reference file: Assets/_Project/Editor/KingsLevelGenerator.cs
+
+## Claude Code Rules (MUST FOLLOW)
+
+### Anti-Stuck Rules
+- NEVER manually compute, verify, or think through data (levels, grids, coordinates)
+- NEVER verify algorithm correctness in thinking - write the code, let Unity run it
+- If a task feels like it needs >5 minutes of planning, STOP and ask for clarification
+- Always write code that executes at runtime/editor-time, not pre-computed output
+
+### Task Breakdown Rules
+- Max one responsibility per prompt
+- If asked to create multiple files, do them sequentially, confirm each before next
+- If output will be >200 lines, ask to split first
+
+### Output Rules
+- Write code immediately, no lengthy preamble
+- No explanation after code unless asked
+- If stuck or uncertain, output partial code with TODO comments and stop
+
+### Level Generation Specific
+- NEVER hardcode level cell data manually
+- ALWAYS write algorithmic generator code
+- Read Documentation/KingsLevelGeneration.md before any level generation task
+
+## Milestones Tracking
+- After completing ANY task, always update Milestones.md
+- Mark completed items with [x]
+- If a new sub-task is discovered during work, add it as [ ] before marking parent done
+- Never mark done if Unity compile errors exist
