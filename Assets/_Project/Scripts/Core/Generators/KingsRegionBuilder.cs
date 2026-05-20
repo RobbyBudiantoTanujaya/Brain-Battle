@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using SystemRandom = System.Random;
 using UnityEngine;
 
 namespace BrainBattle.Core.Generators
@@ -11,7 +12,7 @@ namespace BrainBattle.Core.Generators
         // Multi-source BFS flood-fill from queen positions.
         // Each queen seeds its own region; cells expand organically via shuffled neighbor order.
         // Returns int[,] regionMap where regionMap[row, col] == regionId (0-indexed by queen).
-        public static int[,] Build(int n, Vector2Int[] queens, Random rng)
+        public static int[,] Build(int n, Vector2Int[] queens, SystemRandom rng)
         {
             var regionMap = new int[n, n];
             for (int r = 0; r < n; r++)
@@ -49,7 +50,7 @@ namespace BrainBattle.Core.Generators
             return regionMap;
         }
 
-        private static void Shuffle((int, int)[] arr, Random rng)
+        private static void Shuffle((int, int)[] arr, SystemRandom rng)
         {
             for (int i = arr.Length - 1; i > 0; i--)
             {

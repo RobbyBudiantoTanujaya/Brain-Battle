@@ -1,4 +1,5 @@
 using System;
+using SystemRandom = System.Random;
 using UnityEngine;
 
 namespace BrainBattle.Core.Generators
@@ -8,14 +9,14 @@ namespace BrainBattle.Core.Generators
         // Places N queens on an NxN board. Adjacency rule (LinkedIn Queens):
         // two queens are illegal only if Chebyshev distance == 1.
         // Returns queen positions as Vector2Int(col, row), or null if no solution found.
-        public static Vector2Int[] Solve(int n, Random rng)
+        public static Vector2Int[] Solve(int n, SystemRandom rng)
         {
             var queens   = new Vector2Int[n];
             var usedCols = new bool[n];
             return Backtrack(n, 0, usedCols, queens, rng) ? queens : null;
         }
 
-        private static bool Backtrack(int n, int row, bool[] usedCols, Vector2Int[] queens, Random rng)
+        private static bool Backtrack(int n, int row, bool[] usedCols, Vector2Int[] queens, SystemRandom rng)
         {
             if (row == n) return true;
 
@@ -40,7 +41,7 @@ namespace BrainBattle.Core.Generators
             return false;
         }
 
-        private static void Shuffle(int[] arr, Random rng)
+        private static void Shuffle(int[] arr, SystemRandom rng)
         {
             for (int i = arr.Length - 1; i > 0; i--)
             {

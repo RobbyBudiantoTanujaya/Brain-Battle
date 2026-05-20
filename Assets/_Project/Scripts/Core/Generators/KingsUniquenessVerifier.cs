@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using SystemRandom = System.Random;
 using UnityEngine;
 
 namespace BrainBattle.Core.Generators
@@ -12,12 +13,15 @@ namespace BrainBattle.Core.Generators
         // Verifies the regionMap has exactly one valid solution.
         // Mutates regionMap in-place (border cell swaps) until unique or retries exhausted.
         // Returns true if unique solution achieved; false means caller should bump seed.
-        public static bool Verify(int n, int[,] regionMap, Vector2Int[] queens, Random rng)
+        public static bool Verify(int n, int[,] regionMap, Vector2Int[] queens, SystemRandom rng)
         {
             for (int attempt = 0; attempt < MaxRetries; attempt++)
             {
                 if (CountSolutions(n, regionMap) == 1) return true;
-                MutateBorder(n, regionMap, queens, rng);
+                // Spec: swap 3-5 border cells per retry for meaningful perturbation on large boards
+                int swaps = rng.Next(3, 6);
+                for (int s = 0; s < swaps; s++)
+                    MutateBorder(n, regionMap, queens, rng);
             }
             return CountSolutions(n, regionMap) == 1;
         }
@@ -63,7 +67,7 @@ namespace BrainBattle.Core.Generators
 
         // ── Border mutation ───────────────────────────────────────────────────────
 
-        private static void MutateBorder(int n, int[,] regionMap, Vector2Int[] queens, Random rng)
+        private static void MutateBorder(int n, int[,] regionMap, Vector2Int[] queens, SystemRandom rng)
         {
             var candidates = new List<(int row, int col, int toRegion)>();
 

@@ -1,5 +1,5 @@
-using System;
 using System.Collections.Generic;
+using SystemRandom = System.Random;
 using UnityEngine;
 using BrainBattle.Kings;
 
@@ -7,7 +7,7 @@ namespace BrainBattle.Core.Generators
 {
     public static class LevelGeneratorService
     {
-        private const int MaxSeedBumps = 100;
+        private const int MaxSeedBumps = 10000;
 
         // Deterministic: same (levelNumber, size, difficulty, seed) always produces the same LevelData.
         // Returns null if generation fails after MaxSeedBumps attempts (should never happen for size >= 4).
@@ -16,7 +16,7 @@ namespace BrainBattle.Core.Generators
             for (int bump = 0; bump < MaxSeedBumps; bump++)
             {
                 int currentSeed = seed + bump;
-                var rng = new Random(currentSeed);
+                var rng = new SystemRandom(currentSeed);
 
                 var queens = KingsNQueensSolver.Solve(size, rng);
                 if (queens == null) continue;
