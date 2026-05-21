@@ -69,7 +69,11 @@ namespace BrainBattle.Core.Models
 
         void ISerializationCallbackReceiver.OnBeforeSerialize()
         {
+            // Unity's serializer can reconstruct [Serializable] objects without running
+            // constructors or field initializers, so _serializedCells may be null here.
+            _serializedCells ??= new List<CellData>();
             _serializedCells.Clear();
+
             if (Cells == null) return;
 
             for (int r = 0; r < _size; r++)
@@ -80,6 +84,8 @@ namespace BrainBattle.Core.Models
         void ISerializationCallbackReceiver.OnAfterDeserialize()
         {
             Cells = new CellData[_size, _size];
+            if (_serializedCells == null) return;
+
             foreach (var cell in _serializedCells)
             {
                 if (cell == null) continue;
