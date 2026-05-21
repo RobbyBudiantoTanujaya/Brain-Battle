@@ -196,7 +196,11 @@ namespace BrainBattle.Games.Kings.UI
                     int row = r, col = c;
                     var trigger = cellGo.AddComponent<EventTrigger>();
                     var entry   = new EventTrigger.Entry { eventID = EventTriggerType.PointerClick };
-                    entry.callback.AddListener(_ => OnCellTapped?.Invoke(row, col));
+                    entry.callback.AddListener(_ =>
+                    {
+                        Debug.Log($"[KingsGridRenderer] Cell tapped: ({row}, {col})");
+                        OnCellTapped?.Invoke(row, col);
+                    });
                     trigger.triggers.Add(entry);
                 }
             }

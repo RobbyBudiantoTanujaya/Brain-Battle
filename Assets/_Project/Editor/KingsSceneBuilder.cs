@@ -114,12 +114,31 @@ namespace BrainBattle.Editor
 
         static void EnsureEventSystem()
         {
-            if (Object.FindFirstObjectByType<EventSystem>() != null) return;
+            var es = Object.FindFirstObjectByType<EventSystem>();
 
-            var go = new GameObject("EventSystem");
-            Undo.RegisterCreatedObjectUndo(go, "Build Kings Scene");
-            go.AddComponent<EventSystem>();
-            go.AddComponent<StandaloneInputModule>();
+            if (es == null)
+            {
+                var go = new GameObject("EventSystem");
+                Undo.RegisterCreatedObjectUndo(go, "Build Kings Scene");
+                es = go.AddComponent<EventSystem>();
+            }
+
+            // Prefer InputSystemUIInputModule when com.unity.inputsystem is present.
+            // Type.GetType avoids a hard compile-time dependency on Unity.InputSystem (autoReferenced: false).
+            System.Type inputModuleType =
+                System.Type.GetType("UnityEngine.InputSystem.UI.InputSystemUIInputModule, Unity.InputSystem")
+                ?? typeof(StandaloneInputModule);
+
+            // Remove legacy StandaloneInputModule if we're upgrading to InputSystemUIInputModule.
+            if (inputModuleType != typeof(StandaloneInputModule))
+            {
+                var legacy = es.GetComponent<StandaloneInputModule>();
+                if (legacy != null) Undo.DestroyObjectImmediate(legacy);
+            }
+
+            // Ensure exactly one input module of the correct type is present.
+            if (es.GetComponent(inputModuleType) == null)
+                Undo.AddComponent(es.gameObject, inputModuleType);
         }
 
         // ── Canvas children ────────────────────────────────────────────────────────

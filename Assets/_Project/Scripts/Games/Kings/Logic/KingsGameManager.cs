@@ -197,6 +197,7 @@ namespace BrainBattle.Games.Kings.Logic
 
         private void OnCellTapped(int row, int col)
         {
+            Debug.Log($"[KingsGameManager] GameManager received tap: ({row}, {col})");
             if (!_gameActive || _currentGrid == null || _gridRenderer == null) return;
 
             PushUndoSnapshot();

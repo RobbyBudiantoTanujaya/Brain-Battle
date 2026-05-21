@@ -20,6 +20,7 @@
 - [x] Scene setup guide (SceneSetupGuide.md — hierarchy, SerializeField wiring, mismatches)
 - [x] KingsSceneBuilder editor tool (BrainBattle/Build Kings Scene — auto-builds and wires full hierarchy)
 - [x] Visual fixes: grid centering enforced in Awake, 1px cell borders + 2px region borders, region/bounds debug logs
+- [x] Fix: Cell tap not firing — EnsureEventSystem now uses InputSystemUIInputModule via reflection (activeInputHandler:2 compatibility); debug logs added to KingsGridRenderer + KingsGameManager
 - [ ] HudController script (TimerText + MoveCountText live update — see SceneSetupGuide §7 MISMATCH 3)
 - [ ] Polish & internal build
 
