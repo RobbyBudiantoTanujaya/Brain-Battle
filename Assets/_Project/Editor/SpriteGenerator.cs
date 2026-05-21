@@ -122,7 +122,7 @@ namespace BrainBattle.Editor
         {
             var tex        = new Texture2D(TextureSize, TextureSize, TextureFormat.RGBA32, false);
             tex.filterMode = FilterMode.Bilinear;
-            tex.wrapMode   = WrapMode.Clamp;
+            tex.wrapMode   = TextureWrapMode.Clamp;
             return tex;
         }
 

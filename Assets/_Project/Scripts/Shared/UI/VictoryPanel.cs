@@ -13,7 +13,9 @@ namespace BrainBattle.Shared
         private const float  AnimDuration  = 0.4f;
 
         // Replace entries here for localization.
-        private static readonly string[] StarLabels = { string.Empty, "★", "★★", "★★★" };
+        // LiberationSans SDF does not include ★ (U+2605). Using ASCII '*' until a
+        // custom TMP font atlas with the star glyph is imported.
+        private static readonly string[] StarLabels = { string.Empty, "*", "**", "***" };
 
         [SerializeField] private GameObject          _panel;
         [SerializeField] private TextMeshProUGUI     _timeText;

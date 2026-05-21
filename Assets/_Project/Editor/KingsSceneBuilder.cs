@@ -246,7 +246,7 @@ namespace BrainBattle.Editor
             r.VPMoveCountText.alignment = TextAlignmentOptions.Center;
             Anchor(r.VPMoveCountText, 0.10f, 0.60f, 0.90f, 0.76f);
 
-            r.VPStarRatingText           = MakeTMP("StarRatingText", content, "★★★");
+            r.VPStarRatingText           = MakeTMP("StarRatingText", content, "***");
             r.VPStarRatingText.alignment = TextAlignmentOptions.Center;
             r.VPStarRatingText.fontSize  = 80f;
             Anchor(r.VPStarRatingText, 0.10f, 0.44f, 0.90f, 0.60f);
