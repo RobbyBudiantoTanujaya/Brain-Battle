@@ -15,11 +15,13 @@ namespace BrainBattle.Games.Kings.UI
 
         [SerializeField] private Sprite _dotSprite;
         [SerializeField] private Sprite _crownSprite;
-        [SerializeField] private float  _padding         = 16f;
-        [SerializeField] private float  _borderThickness = 2f;
-        [SerializeField] private Color  _borderColor     = new Color(0.15f, 0.15f, 0.15f, 1f);
-        [SerializeField] private Color  _conflictColor   = Color.red;
-        [SerializeField] private float  _pulseSpeed      = 0.3f;
+        [SerializeField] private float  _padding          = 16f;
+        [SerializeField] private float  _borderThickness  = 2f;
+        [SerializeField] private Color  _borderColor      = new Color(0.15f, 0.15f, 0.15f, 1f);
+        // Thin 1 px separator drawn between every pair of adjacent cells.
+        [SerializeField] private Color  _cellBorderColor  = new Color(0.30f, 0.30f, 0.30f, 1f);
+        [SerializeField] private Color  _conflictColor    = Color.red;
+        [SerializeField] private float  _pulseSpeed       = 0.3f;
 
         /// <summary>Fired when the user taps a cell. Args: (row, col).</summary>
         public event Action<int, int> OnCellTapped;
@@ -39,7 +41,17 @@ namespace BrainBattle.Games.Kings.UI
             public Color BaseColor;
         }
 
-        private void Awake() => _self = GetComponent<RectTransform>();
+        private void Awake()
+        {
+            _self = GetComponent<RectTransform>();
+
+            // Enforce center anchor so the grid is always screen-centred regardless
+            // of how the Inspector was left before the scene builder last ran.
+            _self.anchorMin        = new Vector2(0.5f, 0.5f);
+            _self.anchorMax        = new Vector2(0.5f, 0.5f);
+            _self.pivot            = new Vector2(0.5f, 0.5f);
+            _self.anchoredPosition = Vector2.zero;
+        }
 
         // ── Public API ────────────────────────────────────────────────────────────
 
@@ -54,10 +66,29 @@ namespace BrainBattle.Games.Kings.UI
             _cellViews   = new CellView[grid.Size, grid.Size];
 
             Canvas.ForceUpdateCanvases();
-            Rect available = _self.rect;
-            float usable   = Mathf.Min(available.width, available.height) - _padding * 2f;
+            Rect  available   = _self.rect;
+            float usable      = Mathf.Min(available.width, available.height) - _padding * 2f;
             if (usable <= 0f) usable = 320f;
+
+            // Warn if the grid would be clipped by the canvas.
+            var rootCanvas = GetComponentInParent<Canvas>();
+            if (rootCanvas != null)
+            {
+                var canvasRt   = rootCanvas.GetComponent<RectTransform>();
+                Vector2 cSize  = canvasRt.rect.size;
+                float   maxFit = Mathf.Min(cSize.x, cSize.y) - _padding * 2f;
+                if (usable > maxFit)
+                {
+                    Debug.LogWarning($"[KingsGridRenderer] Grid ({usable:F0}px) exceeds canvas fit ({maxFit:F0}px). Clamping.");
+                    usable = maxFit;
+                }
+            }
+
             _cellSize = usable / grid.Size;
+
+            // Log region breakdown for diagnostics.
+            foreach (var region in grid.Regions)
+                Debug.Log($"[KingsGridRenderer] Rendering region {region.RegionId} with {region.Cells.Count} cells — color {region.RegionColor}");
 
             _gridPanel                  = CreatePanel("GridPanel", _self);
             _gridPanel.anchorMin        = new Vector2(0.5f, 0.5f);
@@ -174,34 +205,63 @@ namespace BrainBattle.Games.Kings.UI
         private void BuildBorders(GridData grid)
         {
             int size = grid.Size;
+
+            // Pass 1 — thin 1 px separator between EVERY pair of adjacent cells.
+            // Drawn first so region borders (pass 2) sit on top visually.
+            for (int r = 0; r < size; r++)
+            {
+                for (int c = 0; c < size; c++)
+                {
+                    if (c + 1 < size)
+                        SpawnBorderLine(
+                            isHorizontal: false,
+                            x:         (c + 1) * _cellSize,
+                            y:         -(r * _cellSize + _cellSize * 0.5f),
+                            length:    _cellSize,
+                            color:     _cellBorderColor,
+                            thickness: 1f);
+
+                    if (r + 1 < size)
+                        SpawnBorderLine(
+                            isHorizontal: true,
+                            x:         c * _cellSize + _cellSize * 0.5f,
+                            y:         -(r + 1) * _cellSize,
+                            length:    _cellSize,
+                            color:     _cellBorderColor,
+                            thickness: 1f);
+                }
+            }
+
+            // Pass 2 — thicker 2 px border where adjacent cells belong to different regions.
             for (int r = 0; r < size; r++)
             {
                 for (int c = 0; c < size; c++)
                 {
                     int regionA = grid.GetCell(r, c).RegionId;
 
-                    // Vertical border to the right of this cell.
                     if (c + 1 < size && regionA != grid.GetCell(r, c + 1).RegionId)
                         SpawnBorderLine(
                             isHorizontal: false,
-                            x: (c + 1) * _cellSize,
-                            y: -(r * _cellSize + _cellSize * 0.5f),
-                            length: _cellSize
-                        );
+                            x:         (c + 1) * _cellSize,
+                            y:         -(r * _cellSize + _cellSize * 0.5f),
+                            length:    _cellSize,
+                            color:     _borderColor,
+                            thickness: _borderThickness);
 
-                    // Horizontal border below this cell.
                     if (r + 1 < size && regionA != grid.GetCell(r + 1, c).RegionId)
                         SpawnBorderLine(
                             isHorizontal: true,
-                            x: c * _cellSize + _cellSize * 0.5f,
-                            y: -(r + 1) * _cellSize,
-                            length: _cellSize
-                        );
+                            x:         c * _cellSize + _cellSize * 0.5f,
+                            y:         -(r + 1) * _cellSize,
+                            length:    _cellSize,
+                            color:     _borderColor,
+                            thickness: _borderThickness);
                 }
             }
         }
 
-        private void SpawnBorderLine(bool isHorizontal, float x, float y, float length)
+        private void SpawnBorderLine(
+            bool isHorizontal, float x, float y, float length, Color color, float thickness)
         {
             var go = new GameObject(
                 isHorizontal ? "BorderH" : "BorderV",
@@ -214,11 +274,11 @@ namespace BrainBattle.Games.Kings.UI
             rt.pivot            = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = new Vector2(x, y);
             rt.sizeDelta        = isHorizontal
-                ? new Vector2(length + _borderThickness, _borderThickness)
-                : new Vector2(_borderThickness, length + _borderThickness);
+                ? new Vector2(length + thickness, thickness)
+                : new Vector2(thickness, length + thickness);
 
             var img           = go.GetComponent<Image>();
-            img.color         = _borderColor;
+            img.color         = color;
             img.raycastTarget = false;
         }
 
