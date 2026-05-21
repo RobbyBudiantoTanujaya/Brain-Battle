@@ -1,7 +1,9 @@
 {
     "name": "BrainBattle",
     "rootNamespace": "BrainBattle",
-    "references": [],
+    "references": [
+        "Unity.TextMeshPro"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
