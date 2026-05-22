@@ -11,6 +11,7 @@ using BrainBattle.Games.Kings.Logic;
 using BrainBattle.Games.Kings.UI;
 using BrainBattle.Kings;
 using BrainBattle.Shared;
+using BrainBattle.Shared.UI;
 
 namespace BrainBattle.Editor
 {
@@ -334,7 +335,11 @@ namespace BrainBattle.Editor
             r.HudMoveText.alignment = TextAlignmentOptions.Center;
             Anchor(r.HudMoveText, 0.38f, 0.08f, 0.62f, 0.92f);
 
-            r.TipsButtonGO = MakeFixedHudButton("TipsButton",    hud, "Tips",    anchorLeft: false, offsetX: 10f);
+            // Menu button — second from right, next to Tips.
+            r.MenuButtonGO = MakeFixedHudButton("MenuButton", hud, "Menu", anchorLeft: false, offsetX: 180f);
+            r.MenuButtonGO.AddComponent<MenuButton>();
+
+            r.TipsButtonGO = MakeFixedHudButton("TipsButton", hud, "Tips", anchorLeft: false, offsetX: 10f);
             r.TipsButtonGO.AddComponent<TipsButton>();
         }
 
@@ -663,6 +668,7 @@ namespace BrainBattle.Editor
             public GameObject      HudGO;
             public GameObject      UndoButtonGO;
             public GameObject      HudRestartGO;
+            public GameObject      MenuButtonGO;
             public GameObject      TipsButtonGO;
             public TextMeshProUGUI HudMoveText;
         }
