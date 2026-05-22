@@ -18,10 +18,11 @@ namespace BrainBattle.Shared.UI
         private static readonly Color ColAccent = new Color(0.93f, 0.26f, 0.56f, 1f); // pink
         private static readonly Color ColLocked = new Color(0.12f, 0.12f, 0.18f, 1f); // dark
 
-        [SerializeField] private Image           _background;
-        [SerializeField] private TextMeshProUGUI _levelLabel;
-        [SerializeField] private GameObject      _checkmark;   // active when Completed
-        [SerializeField] private GameObject      _lockOverlay; // active when Locked
+        [SerializeField] private Image           _background;   // root Image — always transparent (raycast target)
+        [SerializeField] private Image           _spriteImage;  // child Image — fills button, shows state sprite
+        [SerializeField] private TextMeshProUGUI _levelLabel;   // bottom-centre number; hidden when Locked
+        [SerializeField] private GameObject      _checkmark;    // active when Completed
+        [SerializeField] private GameObject      _lockOverlay;  // legacy — kept for prefab compat, always hidden
 
         [Header("Sprites (auto-loaded from Resources if not assigned)")]
         [SerializeField] private Sprite _spriteAvailable;
@@ -71,32 +72,36 @@ namespace BrainBattle.Shared.UI
 
         private void Refresh()
         {
-            if (_levelLabel != null) _levelLabel.text = DisplayNumber.ToString();
-
             bool locked    = State == LevelState.Locked;
             bool completed = State == LevelState.Completed;
 
+            // Root Image is always transparent — it only exists as a Button raycast target.
             if (_background != null)
             {
-                // Pick sprite for this state; fall back to solid colour when sprite is null.
+                _background.sprite = null;
+                _background.color  = Color.clear;
+            }
+
+            // Sprite Image fills the entire button and shows the correct state art.
+            if (_spriteImage != null)
+            {
                 Sprite sprite = locked    ? _spriteLocked    :
                                 completed ? _spriteCompleted :
                                             _spriteAvailable;
+                _spriteImage.sprite          = sprite;
+                _spriteImage.color           = Color.white;
+                _spriteImage.preserveAspect  = false;
+            }
 
-                if (sprite != null)
-                {
-                    _background.sprite = sprite;
-                    _background.color  = Color.white; // let the sprite's own colours show
-                }
-                else
-                {
-                    _background.sprite = null;
-                    _background.color  = locked ? ColLocked : ColAccent;
-                }
+            // Level number: white text, visible only for Available + Completed.
+            if (_levelLabel != null)
+            {
+                _levelLabel.text = DisplayNumber.ToString();
+                _levelLabel.gameObject.SetActive(!locked);
             }
 
             if (_checkmark   != null) _checkmark.SetActive(completed);
-            if (_lockOverlay != null) _lockOverlay.SetActive(locked);
+            if (_lockOverlay != null) _lockOverlay.SetActive(false); // sprite handles locked state
             if (_button      != null) _button.interactable = !locked;
         }
     }

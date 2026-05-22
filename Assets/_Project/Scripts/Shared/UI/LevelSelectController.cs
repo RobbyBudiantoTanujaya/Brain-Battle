@@ -26,8 +26,12 @@ namespace BrainBattle.Shared.UI
             new[] { 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35 },             // Impossible – 10×10
         };
 
-        private static readonly Color ColTabActive   = new Color(0.93f, 0.26f, 0.56f, 1f);
-        private static readonly Color ColTabInactive = new Color(0.12f, 0.12f, 0.18f, 1f);
+        // #ff2d78 – pink accent
+        private static readonly Color ColTabActive    = new Color(1.00f, 0.176f, 0.471f, 1f);
+        // #2a2a3e – dark inactive
+        private static readonly Color ColTabInactive  = new Color(0.165f, 0.165f, 0.243f, 1f);
+        // #ff2d78 – progress fill (same pink)
+        private static readonly Color ColProgressFill = new Color(1.00f, 0.176f, 0.471f, 1f);
 
         // ── Inspector ─────────────────────────────────────────────────────────────
 
@@ -94,7 +98,10 @@ namespace BrainBattle.Shared.UI
                 float pct = pool.Length > 0 ? (float)done / pool.Length : 0f;
 
                 if (_progressFills  != null && d < _progressFills.Length  && _progressFills[d]  != null)
+                {
                     _progressFills[d].fillAmount = pct;
+                    _progressFills[d].color      = ColProgressFill;
+                }
                 if (_progressTexts  != null && d < _progressTexts.Length  && _progressTexts[d]  != null)
                     _progressTexts[d].text = $"{Mathf.RoundToInt(pct * 100)}%";
             }

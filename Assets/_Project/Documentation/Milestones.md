@@ -68,6 +68,15 @@
   - [x] 35 level assets regenerated with Kings_Beginner_XX / Kings_Expert_XX / Kings_Impossible_XX naming
   - [x] Per-tab independent unlock: first level of each tab always available; sequential unlock within tab only
   - [x] Grid cell size reduced 320→250px so all 12 levels fit in one screen without scrolling
+  - [x] Level Select visual polish
+    - [x] LevelSelectButton: transparent root Image (raycast target only), separate SpriteImage child fills button with state sprite
+    - [x] Locked state uses lock sprite (not X overlay); LockOverlay always hidden; label hidden for Locked
+    - [x] Button minimum size 160×160px; GridLayoutGroup cellSize=160×160, spacing=8×8, padding=16 all sides
+    - [x] LevelSelectController: tab active=#ff2d78, inactive=#2a2a3e; progress fill=#ff2d78
+    - [x] Canvas background: main_menu_bg.png (Color.white)
+    - [x] ScrollView Image: transparent; Viewport Image: Color.white (fixes Mask stencil clipping)
+    - [x] LevelSelectSceneBuilder updated: prefab builder rewritten with SpriteImage child, grid 160×160/8px/16px
+    - [x] LevelSelectButton prefab: SpriteImage child at index 0, root Color.clear, all 4 sprites pre-assigned
 ## Milestone 3: Random Map Mode
 ## Milestone 4: Game #2
 ## Milestone 5: PvP

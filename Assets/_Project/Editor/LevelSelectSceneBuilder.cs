@@ -230,9 +230,9 @@ namespace BrainBattle.Editor
             contentRt.sizeDelta  = new Vector2(0f, 0f);
 
             var grid              = contentGO.AddComponent<GridLayoutGroup>();
-            grid.padding          = new RectOffset(14, 14, 14, 14);
-            grid.cellSize         = new Vector2(250f, 250f);
-            grid.spacing          = new Vector2(14f, 14f);
+            grid.padding          = new RectOffset(16, 16, 16, 16);
+            grid.cellSize         = new Vector2(160f, 160f);
+            grid.spacing          = new Vector2(8f, 8f);
             grid.startCorner      = GridLayoutGroup.Corner.UpperLeft;
             grid.startAxis        = GridLayoutGroup.Axis.Horizontal;
             grid.childAlignment   = TextAnchor.UpperLeft;
@@ -261,76 +261,74 @@ namespace BrainBattle.Editor
         static GameObject BuildLevelButtonPrefab()
         {
             // Build in memory, save as prefab, destroy temp instance.
-            var root       = new GameObject("LevelSelectButton");
-            var rootImg    = root.AddComponent<Image>();
-            rootImg.color  = new Color(0.93f, 0.26f, 0.56f, 1f);
-            var btn        = root.AddComponent<Button>();
+            var root    = new GameObject("LevelSelectButton");
+            // Root Image is transparent — it only provides a raycast target for the Button.
+            var rootImg = root.AddComponent<Image>();
+            rootImg.color = Color.clear;
+            var btn     = root.AddComponent<Button>();
             ApplyBtnColors(btn);
             root.AddComponent<LevelSelectButton>();
 
-            // Level number label (bottom-centre)
-            var lblGO  = new GameObject("LevelLabel", typeof(RectTransform));
+            // ── SpriteImage (index 0 — renders behind text) ───────────────────────
+            // Stretches to fill the entire button; sprite is swapped per LevelState.
+            var sprGO = new GameObject("SpriteImage", typeof(RectTransform));
+            sprGO.transform.SetParent(root.transform, false);
+            var sprRt       = sprGO.GetComponent<RectTransform>();
+            sprRt.anchorMin = Vector2.zero;
+            sprRt.anchorMax = Vector2.one;
+            sprRt.offsetMin = Vector2.zero;
+            sprRt.offsetMax = Vector2.zero;
+            var sprImg              = sprGO.AddComponent<Image>();
+            sprImg.color            = Color.white;
+            sprImg.preserveAspect   = false;
+            sprImg.raycastTarget    = false;
+
+            // ── Level number label (bottom-centre, hidden when Locked) ────────────
+            var lblGO = new GameObject("LevelLabel", typeof(RectTransform));
             lblGO.transform.SetParent(root.transform, false);
-            var lblRt        = lblGO.GetComponent<RectTransform>();
-            lblRt.anchorMin  = new Vector2(0f, 0f);
-            lblRt.anchorMax  = new Vector2(1f, 0.40f);
-            lblRt.offsetMin  = Vector2.zero;
-            lblRt.offsetMax  = Vector2.zero;
+            var lblRt       = lblGO.GetComponent<RectTransform>();
+            lblRt.anchorMin = new Vector2(0f, 0f);
+            lblRt.anchorMax = new Vector2(1f, 0.35f);
+            lblRt.offsetMin = Vector2.zero;
+            lblRt.offsetMax = Vector2.zero;
             var lblTmp       = lblGO.AddComponent<TextMeshProUGUI>();
             lblTmp.text      = "1";
             lblTmp.alignment = TextAlignmentOptions.Center;
-            lblTmp.fontSize  = 48f;
+            lblTmp.fontSize  = 36f;
             lblTmp.color     = Color.white;
             lblTmp.fontStyle = FontStyles.Bold;
 
-            // Checkmark overlay (centre, hidden by default)
-            var ckGO  = new GameObject("Checkmark", typeof(RectTransform));
+            // ── Checkmark (top-right corner, hidden until Completed) ──────────────
+            var ckGO = new GameObject("Checkmark", typeof(RectTransform));
             ckGO.transform.SetParent(root.transform, false);
-            var ckRt        = ckGO.GetComponent<RectTransform>();
-            ckRt.anchorMin  = new Vector2(0.1f, 0.4f);
-            ckRt.anchorMax  = new Vector2(0.9f, 1.0f);
-            ckRt.offsetMin  = Vector2.zero;
-            ckRt.offsetMax  = Vector2.zero;
+            var ckRt       = ckGO.GetComponent<RectTransform>();
+            ckRt.anchorMin = new Vector2(0.55f, 0.55f);
+            ckRt.anchorMax = Vector2.one;
+            ckRt.offsetMin = Vector2.zero;
+            ckRt.offsetMax = Vector2.zero;
             var ckTmp       = ckGO.AddComponent<TextMeshProUGUI>();
-            ckTmp.text      = "✓"; // ✓
+            ckTmp.text      = "✓";
             ckTmp.alignment = TextAlignmentOptions.Center;
-            ckTmp.fontSize  = 96f;
+            ckTmp.fontSize  = 56f;
             ckTmp.color     = Color.white;
-            ckGO.SetActive(false); // hidden until Completed
+            ckGO.SetActive(false);
 
-            // Lock overlay (centre, hidden by default)
-            var lkGO  = new GameObject("LockOverlay", typeof(RectTransform));
+            // ── LockOverlay (legacy — always hidden; sprite handles locked state) ──
+            var lkGO = new GameObject("LockOverlay", typeof(RectTransform));
             lkGO.transform.SetParent(root.transform, false);
-            var lkRt        = lkGO.GetComponent<RectTransform>();
-            lkRt.anchorMin  = Vector2.zero;
-            lkRt.anchorMax  = Vector2.one;
-            lkRt.offsetMin  = Vector2.zero;
-            lkRt.offsetMax  = Vector2.zero;
-            var lkImg       = lkGO.AddComponent<Image>();
-            lkImg.color     = new Color(0f, 0f, 0f, 0.55f);
-            lkImg.raycastTarget = false;
-            var lkTmp       = new GameObject("LockLabel", typeof(RectTransform));
-            lkTmp.transform.SetParent(lkGO.transform, false);
-            var lkLblRt          = lkTmp.GetComponent<RectTransform>();
-            lkLblRt.anchorMin    = Vector2.zero;
-            lkLblRt.anchorMax    = Vector2.one;
-            lkLblRt.offsetMin    = Vector2.zero;
-            lkLblRt.offsetMax    = Vector2.zero;
-            var lkText           = lkTmp.AddComponent<TextMeshProUGUI>();
-            lkText.text          = "🔒"; // will fallback to box; see note below
-            lkText.text          = "X";            // ASCII fallback for TMP default font
-            lkText.alignment     = TextAlignmentOptions.Center;
-            lkText.fontSize      = 80f;
-            lkText.color         = new Color(1f, 1f, 1f, 0.80f);
-            lkGO.SetActive(false); // hidden until Locked
+            lkGO.SetActive(false);
 
-            // Wire LevelSelectButton SerializeFields via SerializedObject.
+            // ── Wire SerializeFields ───────────────────────────────────────────────
             var so = new SerializedObject(root.GetComponent<LevelSelectButton>());
-            so.FindProperty("_background").objectReferenceValue   = rootImg;
-            so.FindProperty("_levelLabel").objectReferenceValue   = lblTmp;
-            so.FindProperty("_checkmark").objectReferenceValue    = ckGO;
-            so.FindProperty("_lockOverlay").objectReferenceValue  = lkGO;
+            so.FindProperty("_background").objectReferenceValue  = rootImg;
+            so.FindProperty("_spriteImage").objectReferenceValue = sprImg;
+            so.FindProperty("_levelLabel").objectReferenceValue  = lblTmp;
+            so.FindProperty("_checkmark").objectReferenceValue   = ckGO;
+            so.FindProperty("_lockOverlay").objectReferenceValue = lkGO;
             so.ApplyModifiedPropertiesWithoutUndo();
+
+            // ── Pre-assign state sprites ───────────────────────────────────────────
+            AssignLevelButtonSpritesToSO(so);
 
             // Save as prefab asset.
             Directory.CreateDirectory("Assets/_Project/Prefabs");
@@ -338,6 +336,19 @@ namespace BrainBattle.Editor
             Object.DestroyImmediate(root);
             Debug.Log("[LevelSelectSceneBuilder] Prefab saved → " + PrefabPath);
             return prefab;
+        }
+
+        static void AssignLevelButtonSpritesToSO(SerializedObject so)
+        {
+            so.FindProperty("_spriteAvailable").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Project/Resources/Sprites/level_available.png");
+            so.FindProperty("_spriteCompleted").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Project/Resources/Sprites/level_completed.png");
+            so.FindProperty("_spriteActive").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Project/Resources/Sprites/level_active.png");
+            so.FindProperty("_spriteLocked").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Project/Resources/Sprites/level_lock.png");
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         // ── Wire LevelSelectController SerializeFields ─────────────────────────────
