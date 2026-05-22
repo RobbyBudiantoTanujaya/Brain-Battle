@@ -32,6 +32,9 @@ namespace BrainBattle.Shared.UI
         private static readonly Color ColTabInactive  = new Color(0.165f, 0.165f, 0.243f, 1f);
         // #ff2d78 – progress fill (same pink)
         private static readonly Color ColProgressFill = new Color(1.00f, 0.176f, 0.471f, 1f);
+        // Tab label colours
+        private static readonly Color ColTabTxtActive   = Color.white;
+        private static readonly Color ColTabTxtInactive = new Color(0.533f, 0.533f, 0.533f, 1f); // #888888
 
         // ── Inspector ─────────────────────────────────────────────────────────────
 
@@ -73,11 +76,19 @@ namespace BrainBattle.Shared.UI
         {
             _activeTab = index;
 
-            // Highlight active tab, dim others.
+            // Highlight active tab, dim others — background colour + label colour/weight.
             for (int i = 0; i < _tabButtons.Length; i++)
             {
+                bool active = (i == index);
                 var img = _tabButtons[i].GetComponent<Image>();
-                if (img != null) img.color = (i == index) ? ColTabActive : ColTabInactive;
+                if (img != null) img.color = active ? ColTabActive : ColTabInactive;
+
+                var lbl = _tabButtons[i].GetComponentInChildren<TextMeshProUGUI>();
+                if (lbl != null)
+                {
+                    lbl.color     = active ? ColTabTxtActive : ColTabTxtInactive;
+                    lbl.fontStyle = active ? FontStyles.Bold : FontStyles.Normal;
+                }
             }
 
             RefreshProgress();

@@ -11,18 +11,17 @@ namespace BrainBattle.Games.Kings.UI
     [RequireComponent(typeof(RectTransform))]
     public sealed class KingsGridRenderer : MonoBehaviour
     {
-        private const float IconScale      = 0.55f; // dot fills ~55 % of cell
-        private const float CrownIconScale = 0.82f; // crown_1 is 347×224 (1.55:1); with preserveAspect
-                                                     // the displayed height = scale*(224/347)*cell ≈ 0.53*cell
-                                                     // matching the dot's visual size
+        private const float IconScale      = 0.25f; // dot: 25 % of cell (small marker circle)
+        private const float CrownIconScale = 0.65f; // crown: 65 % of cell square; preserveAspect gives
+                                                     // displayed height ≈ 0.65*(224/347)*cell ≈ 0.42*cell
 
         [SerializeField] private Sprite _dotSprite;
         [SerializeField] private Sprite _crownSprite;
         [SerializeField] private float  _padding          = 16f;
-        [SerializeField] private Color  _thinBorderColor  = new Color(0f, 0f, 0f, 0.25f);
+        [SerializeField] private Color  _thinBorderColor  = new Color(0f, 0f, 0f, 0.20f);
         [SerializeField] private Color  _thickBorderColor = new Color(0f, 0f, 0f, 0.80f);
         [SerializeField] private float  _thinBorderWidth  = 1.5f;
-        [SerializeField] private float  _thickBorderWidth = 4f;
+        [SerializeField] private float  _thickBorderWidth = 3f;
         [SerializeField] private Color  _conflictColor    = Color.red;
         [SerializeField] private float  _pulseSpeed       = 0.3f;
 

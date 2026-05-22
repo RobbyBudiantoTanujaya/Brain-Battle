@@ -13,10 +13,10 @@ namespace BrainBattle.Shared
         private const string TimeFormat    = "{0:00}:{1:00}";
         private const float  AnimDuration  = 0.4f;
 
-        // Replace entries here for localization.
-        // LiberationSans SDF does not include ★ (U+2605). Using ASCII '*' until a
-        // custom TMP font atlas with the star glyph is imported.
-        private static readonly string[] StarLabels = { string.Empty, "*", "**", "***" };
+        // ★ = U+2605 (Black Star). TMP uses dynamic font atlases; if the glyph is
+        // missing at runtime Unity will fall back to a replacement square — swap for
+        // Image-based stars later if needed.
+        private static readonly string[] StarLabels = { string.Empty, "★", "★★", "★★★" };
 
         [SerializeField] private GameObject          _panel;
         [SerializeField] private TextMeshProUGUI     _timeText;

@@ -85,6 +85,13 @@
 - [x] Fix: KingsSceneBootstrap redirects to LevelSelect when Kings_PendingLevel key absent (prevents SampleScene from auto-starting game when launched directly from Editor or cold boot)
 - [x] In-game Menu button — HUD tombol "Menu" kembali ke Level Select (MenuButton.cs, pinned kanan di -180px, sebelah Tips)
 - [x] Fix: Crown icon too small vs dot — added CrownIconScale=0.82 (vs DotIconScale=0.55); crown_1 sprite is 347×224 (landscape), so larger RectTransform needed so displayed height matches dot; ApplyCellState adjusts icon sizeDelta per state
+- [x] Premium visual overhaul — dark navy #1a1a2e + hot pink #ff2d78 design language applied across all screens
+  - [x] KingsGridRenderer: dot=25% cell, crown=65% cell, thin border 1.5px rgba(0,0,0,0.20), thick border 3px rgba(0,0,0,0.80)
+  - [x] LevelSelectController: tab active=#ff2d78 bold white, inactive=#2a2a3e gray #888888 text (color + fontStyle set dynamically)
+  - [x] VictoryPanel: star labels changed to ★ U+2605 unicode
+  - [x] KingsSceneBuilder: TimerBar 48px NavyBg, HUD 72px NavyBg, VictoryPanel dark overlay + 85% wide + pink buttons + ★★★ in pink, StylePinkButton helper
+  - [x] LevelSelectSceneBuilder: flush tabs (no gap), 6px progress track, main_menu_bg background, grid 300×300/12px, PLAY button full-width pink 64px
+  - [x] LevelSelectButton prefab: label centred (full anchor), fontSize 56px bold
 ## Milestone 3: Random Map Mode
 ## Milestone 4: Game #2
 ## Milestone 5: PvP

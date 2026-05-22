@@ -178,8 +178,8 @@ namespace BrainBattle.Editor
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
             rt.pivot     = new Vector2(0.5f, 0.5f);
-            rt.offsetMin = new Vector2(0f,  80f); // bottom inset = HUD height
-            rt.offsetMax = new Vector2(0f, -60f); // top    inset = TimerBar height
+            rt.offsetMin = new Vector2(0f,  72f); // bottom inset = HUD height
+            rt.offsetMax = new Vector2(0f, -48f); // top    inset = TimerBar height
         }
 
         static void CreateTutorialOverlay(Refs r)
@@ -257,37 +257,64 @@ namespace BrainBattle.Editor
             Stretch(r.VictoryPanelGO);
             r.VictoryPanelGO.AddComponent<VictoryPanel>();
 
+            // Dark semi-transparent overlay behind the card.
+            var overlay = MakeUIGO("Overlay", r.VictoryPanelGO.transform);
+            Stretch(overlay);
+            overlay.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.70f);
+
+            // Card — 85 % wide, centred vertically.
             r.VictoryContent = MakeUIGO("VictoryContent", r.VictoryPanelGO.transform);
-            Anchor(r.VictoryContent, 0.10f, 0.22f, 0.90f, 0.78f);
-            r.VictoryContent.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.20f, 1f);
-            // Start hidden — VictoryPanel.Awake() also hides it, but setting it
-            // inactive here means the scene file itself is correct even if Awake NPEs.
+            Anchor(r.VictoryContent, 0.075f, 0.20f, 0.925f, 0.80f);
+            r.VictoryContent.AddComponent<Image>().color = NavyBg;
+            // Start hidden — VictoryPanel.Awake() also hides it.
             r.VictoryContent.SetActive(false);
 
             var content = r.VictoryContent.transform;
 
-            r.VPTimeText           = MakeTMP("TimeText", content, "00:00");
-            r.VPTimeText.alignment = TextAlignmentOptions.Center;
-            r.VPTimeText.fontSize  = 72f;
-            Anchor(r.VPTimeText, 0.10f, 0.76f, 0.90f, 0.94f);
+            r.VPTimeText            = MakeTMP("TimeText", content, "00:00");
+            r.VPTimeText.alignment  = TextAlignmentOptions.Center;
+            r.VPTimeText.fontStyle  = FontStyles.Bold;
+            r.VPTimeText.fontSize   = 72f;
+            Anchor(r.VPTimeText, 0.05f, 0.78f, 0.95f, 0.96f);
 
-            r.VPMoveCountText           = MakeTMP("MoveCountText", content, "0");
+            r.VPMoveCountText           = MakeTMP("MoveCountText", content, "0 moves");
             r.VPMoveCountText.alignment = TextAlignmentOptions.Center;
-            Anchor(r.VPMoveCountText, 0.10f, 0.60f, 0.90f, 0.76f);
+            r.VPMoveCountText.fontSize  = 40f;
+            Anchor(r.VPMoveCountText, 0.05f, 0.64f, 0.95f, 0.79f);
 
-            r.VPStarRatingText           = MakeTMP("StarRatingText", content, "***");
+            r.VPStarRatingText           = MakeTMP("StarRatingText", content, "★★★");
             r.VPStarRatingText.alignment = TextAlignmentOptions.Center;
-            r.VPStarRatingText.fontSize  = 80f;
-            Anchor(r.VPStarRatingText, 0.10f, 0.44f, 0.90f, 0.60f);
+            r.VPStarRatingText.fontSize  = 88f;
+            r.VPStarRatingText.color     = PinkAccent;
+            Anchor(r.VPStarRatingText, 0.05f, 0.46f, 0.95f, 0.65f);
 
+            // Menu button — full width.
+            r.VPMainMenuButton = MakeButton("MainMenuButton", content, "Menu");
+            StylePinkButton(r.VPMainMenuButton);
+            Anchor(r.VPMainMenuButton, 0.06f, 0.30f, 0.94f, 0.44f);
+
+            // Next Level + Restart side by side below Menu.
             r.VPNextLevelButton = MakeButton("NextLevelButton", content, "Next Level");
-            Anchor(r.VPNextLevelButton, 0.06f, 0.06f, 0.56f, 0.22f);
+            StylePinkButton(r.VPNextLevelButton);
+            Anchor(r.VPNextLevelButton, 0.06f, 0.06f, 0.50f, 0.28f);
 
             r.VPRestartButton = MakeButton("RestartButton", content, "Restart");
-            Anchor(r.VPRestartButton, 0.58f, 0.06f, 0.94f, 0.22f);
+            StylePinkButton(r.VPRestartButton);
+            Anchor(r.VPRestartButton, 0.52f, 0.06f, 0.94f, 0.28f);
+        }
 
-            r.VPMainMenuButton = MakeButton("MainMenuButton", content, "Menu");
-            Anchor(r.VPMainMenuButton, 0.24f, 0.26f, 0.76f, 0.40f);
+        // Applies hot-pink (#ff2d78) style to a Button created by MakeButton().
+        static void StylePinkButton(Button btn)
+        {
+            var img = btn.GetComponent<Image>();
+            if (img != null) img.color = PinkAccent;
+
+            var colors               = btn.colors;
+            colors.normalColor       = Color.white;
+            colors.highlightedColor  = new Color(1f, 0.4f, 0.6f, 1f);
+            colors.pressedColor      = new Color(0.7f, 0.1f, 0.3f, 1f);
+            colors.disabledColor     = new Color(1f, 1f, 1f, 0.40f);
+            btn.colors               = colors;
         }
 
         static void CreateTimerBar(Refs r)
@@ -298,12 +325,13 @@ namespace BrainBattle.Editor
             rt.anchorMax        = new Vector2(1f, 1f);
             rt.pivot            = new Vector2(0.5f, 1f);
             rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta        = new Vector2(0f, 60f);
-            r.TimerBarGO.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.16f, 0.95f);
+            rt.sizeDelta        = new Vector2(0f, 48f); // dark navy top bar
+            r.TimerBarGO.AddComponent<Image>().color = NavyBg;
 
             r.HudTimerText           = MakeTMP("TimerText", r.TimerBarGO.transform, "00:00");
             r.HudTimerText.alignment = TextAlignmentOptions.Center;
-            r.HudTimerText.fontSize  = 52f;
+            r.HudTimerText.fontStyle = FontStyles.Bold;
+            r.HudTimerText.fontSize  = 44f;
             Stretch(r.HudTimerText.gameObject);
         }
 
@@ -315,9 +343,8 @@ namespace BrainBattle.Editor
             rt.anchorMax        = new Vector2(1f, 0f);
             rt.pivot            = new Vector2(0.5f, 0f);
             rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta        = new Vector2(0f, 80f);
-            // Dark background so HUD text and buttons are readable over any grid colour.
-            r.HudGO.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.16f, 0.95f);
+            rt.sizeDelta        = new Vector2(0f, 72f); // dark navy bottom bar
+            r.HudGO.AddComponent<Image>().color = NavyBg;
 
             var hud = r.HudGO.transform;
 
@@ -480,8 +507,10 @@ namespace BrainBattle.Editor
             return tmp;
         }
 
-        // Shared palette — change once here to restyle all buttons.
-        static readonly Color BtnBg = new Color(0.18f, 0.22f, 0.45f, 1f); // dark indigo
+        // Shared palette — change once here to restyle all buttons/panels.
+        static readonly Color BtnBg   = new Color(0.18f, 0.22f, 0.45f, 1f); // dark indigo
+        static readonly Color NavyBg  = new Color(0.102f, 0.102f, 0.180f, 0.97f); // #1a1a2e dark navy
+        static readonly Color PinkAccent = new Color(1.00f, 0.176f, 0.471f, 1f);  // #ff2d78
 
         // Anchors a RectTransform using normalized parent coordinates; zeros all offsets.
         static void Anchor(RectTransform rt, float minX, float minY, float maxX, float maxY)

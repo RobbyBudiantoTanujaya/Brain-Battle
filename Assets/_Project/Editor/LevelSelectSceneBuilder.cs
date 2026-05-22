@@ -20,10 +20,11 @@ namespace BrainBattle.Editor
         private const string PrefabPath = "Assets/_Project/Prefabs/LevelSelectButton.prefab";
 
         private static readonly Color ColBg         = new Color(0.06f, 0.06f, 0.10f, 1f);
-        private static readonly Color ColPanel      = new Color(0.10f, 0.10f, 0.18f, 1f);
-        private static readonly Color ColAccent     = new Color(0.93f, 0.26f, 0.56f, 1f);
-        private static readonly Color ColTabInact   = new Color(0.12f, 0.12f, 0.22f, 1f);
+        private static readonly Color ColPanel      = new Color(0.102f, 0.102f, 0.180f, 0.97f); // #1a1a2e
+        private static readonly Color ColAccent     = new Color(1.00f, 0.176f, 0.471f, 1f);     // #ff2d78
+        private static readonly Color ColTabInact   = new Color(0.165f, 0.165f, 0.243f, 1f);    // #2a2a3e
         private static readonly Color ColBtnBg      = new Color(0.18f, 0.22f, 0.45f, 1f);
+        private static readonly Color ColTxtGray    = new Color(0.533f, 0.533f, 0.533f, 1f);    // #888888
 
         // ── Entry point ────────────────────────────────────────────────────────────
 
@@ -123,48 +124,61 @@ namespace BrainBattle.Editor
         {
             var canvas = r.Canvas.transform;
 
-            // Background
-            var bg = UI("Background", canvas);
+            // ── Background: full-screen main_menu_bg sprite ───────────────────────
+            var bg    = UI("Background", canvas);
             Stretch(bg);
-            bg.AddComponent<Image>().color = ColBg;
+            var bgImg    = bg.AddComponent<Image>();
+            var bgSprite = AssetDatabase.LoadAssetAtPath<Sprite>(
+                "Assets/_Project/Resources/Sprites/main_menu_bg.png");
+            if (bgSprite != null) { bgImg.sprite = bgSprite; bgImg.color = Color.white; }
+            else bgImg.color = ColBg;
 
-            // Header
+            // ── Header ────────────────────────────────────────────────────────────
             var header = UI("Header", canvas);
             Anchor(header, 0f, 0.90f, 1f, 1.00f);
             header.AddComponent<Image>().color = ColPanel;
-            var headerTmp     = MakeTMP("Title", header.transform, "LEVEL SELECT");
-            headerTmp.fontSize = 72f;
+            var headerTmp   = MakeTMP("Title", header.transform, "LEVEL SELECT");
+            headerTmp.fontSize  = 72f;
             headerTmp.fontStyle = FontStyles.Bold;
             headerTmp.alignment = TextAlignmentOptions.Center;
             Stretch(headerTmp.gameObject);
 
-            // ── Tab section ───────────────────────────────────────────────────────
-            // TabRow: 3 equal button columns
+            // ── Tab row: 3 flush equal-width tabs ─────────────────────────────────
             var tabRow = UI("TabRow", canvas);
-            Anchor(tabRow, 0f, 0.80f, 1f, 0.90f);
+            Anchor(tabRow, 0f, 0.82f, 1f, 0.90f); // 60px approx in 1920 ref
 
-            string[] tabNames = { "Beginner", "Expert", "Impossible" };
-            var tabButtons = new Button[3];
+            string[] tabNames  = { "Beginner", "Expert", "Impossible" };
+            var      tabButtons = new Button[3];
             for (int i = 0; i < 3; i++)
             {
-                float x0 = i * (1f / 3f), x1 = (i + 1) * (1f / 3f);
-                var cell = UI(tabNames[i] + "Tab", tabRow.transform);
-                Anchor(cell, x0 + 0.005f, 0f, x1 - 0.005f, 1f);
+                float x0   = i * (1f / 3f);
+                float x1   = (i + 1) * (1f / 3f);
+                bool  active = i == 0;
+
+                var cell  = UI(tabNames[i] + "Tab", tabRow.transform);
+                Anchor(cell, x0, 0f, x1, 1f); // flush — no gap
+
                 var img   = cell.AddComponent<Image>();
-                img.color = i == 0 ? ColAccent : ColTabInact;
+                img.color = active ? ColAccent : ColTabInact;
+
                 var btn   = cell.AddComponent<Button>();
                 ApplyBtnColors(btn);
-                var lbl     = MakeTMP("Label", cell.transform, tabNames[i]);
+
+                var lbl       = MakeTMP("Label", cell.transform, tabNames[i]);
                 lbl.alignment = TextAlignmentOptions.Center;
                 lbl.fontSize  = 38f;
+                lbl.fontStyle = active ? FontStyles.Bold   : FontStyles.Normal;
+                lbl.color     = active ? Color.white        : ColTxtGray;
                 Stretch(lbl.gameObject);
+
                 tabButtons[i] = btn;
             }
             r.TabButtons = tabButtons;
 
-            // ── Progress row ──────────────────────────────────────────────────────
+            // ── Progress row: one group per tab ───────────────────────────────────
+            // Compact 48px strip — track is 6px, centred vertically.
             var progRow = UI("ProgressRow", canvas);
-            Anchor(progRow, 0f, 0.73f, 1f, 0.80f);
+            Anchor(progRow, 0f, 0.775f, 1f, 0.820f);
 
             var progFills = new Image[3];
             var progTexts = new TextMeshProUGUI[3];
@@ -172,51 +186,55 @@ namespace BrainBattle.Editor
             {
                 float x0 = i * (1f / 3f), x1 = (i + 1) * (1f / 3f);
 
-                // Outer container
                 var group = UI($"ProgressGroup{i}", progRow.transform);
                 Anchor(group, x0 + 0.01f, 0f, x1 - 0.01f, 1f);
 
-                // Track (dark background)
-                var track = UI("Track", group.transform);
-                Anchor(track, 0f, 0.45f, 0.78f, 1.00f);
-                track.AddComponent<Image>().color = new Color(0.08f, 0.10f, 0.20f, 1f);
+                // 6-px track — anchored to parent centre, width fills 80% of group.
+                var track   = UI("Track", group.transform);
+                var trackRt = track.GetComponent<RectTransform>();
+                trackRt.anchorMin       = new Vector2(0f,   0.5f);
+                trackRt.anchorMax       = new Vector2(0.80f, 0.5f);
+                trackRt.pivot           = new Vector2(0.5f,  0.5f);
+                trackRt.anchoredPosition = Vector2.zero;
+                trackRt.sizeDelta       = new Vector2(0f, 6f);
+                track.AddComponent<Image>().color = new Color(0.165f, 0.165f, 0.243f, 1f);
 
-                // Fill image (Image.Type.Filled, Horizontal)
-                var fill    = UI("Fill", track.transform);
+                // Fill (Image.Type.Filled, Horizontal)
+                var fill   = UI("Fill", track.transform);
                 Stretch(fill);
-                var fillImg         = fill.AddComponent<Image>();
-                fillImg.color       = ColAccent;
-                fillImg.type        = Image.Type.Filled;
-                fillImg.fillMethod  = Image.FillMethod.Horizontal;
-                fillImg.fillAmount  = 0f;
+                var fillImg          = fill.AddComponent<Image>();
+                fillImg.color        = ColAccent;
+                fillImg.type         = Image.Type.Filled;
+                fillImg.fillMethod   = Image.FillMethod.Horizontal;
+                fillImg.fillAmount   = 0f;
                 fillImg.raycastTarget = false;
-                progFills[i] = fillImg;
+                progFills[i]         = fillImg;
 
-                // Percentage text
-                var pct     = MakeTMP($"PctText{i}", group.transform, "0%");
-                pct.alignment = TextAlignmentOptions.MidlineLeft;
-                pct.fontSize  = 32f;
-                Anchor(pct.gameObject, 0.80f, 0f, 1.00f, 1f);
-                progTexts[i] = pct;
+                // % text — right-aligned, takes the remaining 20% of the group.
+                var pct       = MakeTMP($"PctText{i}", group.transform, "0%");
+                pct.alignment = TextAlignmentOptions.MidlineRight;
+                pct.fontSize  = 28f;
+                pct.color     = Color.white;
+                Anchor(pct.gameObject, 0.82f, 0f, 1.00f, 1f);
+                progTexts[i]  = pct;
             }
             r.ProgressFills = progFills;
             r.ProgressTexts = progTexts;
 
             // ── Scroll view ───────────────────────────────────────────────────────
             var scrollGO = UI("LevelScrollView", canvas);
-            Anchor(scrollGO, 0.03f, 0.14f, 0.97f, 0.73f);
-            scrollGO.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0f); // transparent
+            Anchor(scrollGO, 0.03f, 0.06f, 0.97f, 0.775f);
+            scrollGO.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0f);
 
-            var scroll              = scrollGO.AddComponent<ScrollRect>();
-            scroll.horizontal       = false;
-            scroll.vertical         = true;
+            var scroll               = scrollGO.AddComponent<ScrollRect>();
+            scroll.horizontal        = false;
+            scroll.vertical          = true;
             scroll.scrollSensitivity = 30f;
 
-            // Viewport — Image MUST be opaque (Color.white) for the Mask stencil to clip correctly.
-            // showMaskGraphic=false hides the image visually while still defining the clip region.
+            // Viewport — MUST be Color.white for Mask stencil to clip children.
             var viewportGO = UI("Viewport", scrollGO.transform);
             Stretch(viewportGO);
-            viewportGO.AddComponent<Image>().color = Color.white;
+            viewportGO.AddComponent<Image>().color      = Color.white;
             viewportGO.AddComponent<Mask>().showMaskGraphic = false;
 
             // Content (GridLayoutGroup)
@@ -229,30 +247,38 @@ namespace BrainBattle.Editor
             contentRt.offsetMax  = Vector2.zero;
             contentRt.sizeDelta  = new Vector2(0f, 0f);
 
-            var grid              = contentGO.AddComponent<GridLayoutGroup>();
-            grid.padding          = new RectOffset(16, 16, 16, 16);
-            grid.cellSize         = new Vector2(160f, 160f);
-            grid.spacing          = new Vector2(8f, 8f);
-            grid.startCorner      = GridLayoutGroup.Corner.UpperLeft;
-            grid.startAxis        = GridLayoutGroup.Axis.Horizontal;
-            grid.childAlignment   = TextAnchor.UpperLeft;
-            grid.constraint       = GridLayoutGroup.Constraint.FixedColumnCount;
-            grid.constraintCount  = 3;
+            var grid             = contentGO.AddComponent<GridLayoutGroup>();
+            grid.padding         = new RectOffset(16, 16, 16, 16);
+            grid.cellSize        = new Vector2(300f, 300f);
+            grid.spacing         = new Vector2(12f, 12f);
+            grid.startCorner     = GridLayoutGroup.Corner.UpperLeft;
+            grid.startAxis       = GridLayoutGroup.Axis.Horizontal;
+            grid.childAlignment  = TextAnchor.UpperCenter;
+            grid.constraint      = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = 3;
 
-            var csf               = contentGO.AddComponent<ContentSizeFitter>();
-            csf.verticalFit       = ContentSizeFitter.FitMode.PreferredSize;
-            csf.horizontalFit     = ContentSizeFitter.FitMode.Unconstrained;
+            var csf              = contentGO.AddComponent<ContentSizeFitter>();
+            csf.verticalFit      = ContentSizeFitter.FitMode.PreferredSize;
+            csf.horizontalFit    = ContentSizeFitter.FitMode.Unconstrained;
 
-            scroll.viewport    = viewportGO.GetComponent<RectTransform>();
-            scroll.content     = contentRt;
-            r.GridContent      = contentGO.transform;
+            scroll.viewport  = viewportGO.GetComponent<RectTransform>();
+            scroll.content   = contentRt;
+            r.GridContent    = contentGO.transform;
 
-            // ── Play button ───────────────────────────────────────────────────────
-            var play  = MakeButton("PlayButton", canvas, "PLAY");
-            Anchor(play.gameObject, 0.05f, 0.02f, 0.95f, 0.12f);
-            // Make it more prominent: accent color + bigger font.
-            play.GetComponent<Image>().color = ColAccent;
-            play.GetComponentInChildren<TextMeshProUGUI>().fontSize = 56f;
+            // ── Play button: full width (−32 px), 64 px tall, 16 px from bottom ──
+            var play   = MakeButton("PlayButton", canvas, "PLAY");
+            var playRt = play.gameObject.GetComponent<RectTransform>();
+            playRt.anchorMin        = new Vector2(0f, 0f);
+            playRt.anchorMax        = new Vector2(1f, 0f);
+            playRt.pivot            = new Vector2(0.5f, 0f);
+            playRt.offsetMin        = new Vector2(16f,  16f);
+            playRt.offsetMax        = new Vector2(-16f, 80f); // 64 px height
+            playRt.anchoredPosition = new Vector2(0f, 0f);
+
+            StylePinkButton(play);
+            var playLbl      = play.GetComponentInChildren<TextMeshProUGUI>();
+            playLbl.fontSize  = 52f;
+            playLbl.fontStyle = FontStyles.Bold;
             r.PlayButton = play;
         }
 
@@ -283,18 +309,18 @@ namespace BrainBattle.Editor
             sprImg.preserveAspect   = false;
             sprImg.raycastTarget    = false;
 
-            // ── Level number label (bottom-centre, hidden when Locked) ────────────
+            // ── Level number label (centred, hidden when Locked) ──────────────────
             var lblGO = new GameObject("LevelLabel", typeof(RectTransform));
             lblGO.transform.SetParent(root.transform, false);
             var lblRt       = lblGO.GetComponent<RectTransform>();
-            lblRt.anchorMin = new Vector2(0f, 0f);
-            lblRt.anchorMax = new Vector2(1f, 0.35f);
+            lblRt.anchorMin = Vector2.zero;
+            lblRt.anchorMax = Vector2.one;
             lblRt.offsetMin = Vector2.zero;
             lblRt.offsetMax = Vector2.zero;
             var lblTmp       = lblGO.AddComponent<TextMeshProUGUI>();
             lblTmp.text      = "1";
             lblTmp.alignment = TextAlignmentOptions.Center;
-            lblTmp.fontSize  = 36f;
+            lblTmp.fontSize  = 56f;
             lblTmp.color     = Color.white;
             lblTmp.fontStyle = FontStyles.Bold;
 
@@ -349,6 +375,18 @@ namespace BrainBattle.Editor
             so.FindProperty("_spriteLocked").objectReferenceValue =
                 AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Project/Resources/Sprites/level_lock.png");
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        static void StylePinkButton(Button btn)
+        {
+            var img = btn.GetComponent<Image>();
+            if (img != null) img.color = ColAccent;
+            var c               = btn.colors;
+            c.normalColor       = Color.white;
+            c.highlightedColor  = new Color(1f, 0.4f, 0.6f, 1f);
+            c.pressedColor      = new Color(0.7f, 0.1f, 0.3f, 1f);
+            c.disabledColor     = new Color(1f, 1f, 1f, 0.40f);
+            btn.colors          = c;
         }
 
         // ── Wire LevelSelectController SerializeFields ─────────────────────────────
