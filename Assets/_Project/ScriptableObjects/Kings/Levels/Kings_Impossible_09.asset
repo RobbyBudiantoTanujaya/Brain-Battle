@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fd26fb51da2899a48858332d2b3f1acd, type: 3}
-  m_Name: 
+  m_Name: Kings_Impossible_09
   m_EditorClassIdentifier: 
-  _levelNumber: 5
+  _levelNumber: 33
   _difficulty: Impossible
   _gridSize: 10
   _regions:

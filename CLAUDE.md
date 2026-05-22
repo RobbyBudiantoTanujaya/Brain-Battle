@@ -76,3 +76,13 @@ Assets/_Project/
 - Mark completed items with [x]
 - If a new sub-task is discovered during work, add it as [ ] before marking parent done
 - Never mark done if Unity compile errors exist
+
+## Unity MCP
+- Unity MCP is connected and active on this project
+- ALWAYS use Unity MCP tools for:
+  * Reading console errors before fixing bugs
+  * Checking scene hierarchy before modifying scene
+  * Reading component values before writing fix code
+  * Triggering Unity menu items (BrainBattle -> Generate Kings Levels, etc.)
+- Never ask for screenshots of Unity console or hierarchy, read directly via MCP
+- Before any bug fix: run manage_scene to get current state first
