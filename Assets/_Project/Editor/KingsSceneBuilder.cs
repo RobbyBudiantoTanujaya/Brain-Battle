@@ -515,7 +515,7 @@ namespace BrainBattle.Editor
                                 AssetDatabase.GUIDToAssetPath(guid));
                 if (asset != null) levels.Add(asset);
             }
-            levels.Sort((a, b) => a.LevelNumber.CompareTo(b.LevelNumber));
+            levels.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
 
             var so   = new SerializedObject(loader);
             var prop = so.FindProperty("_allLevels");

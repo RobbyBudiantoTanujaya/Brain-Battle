@@ -6,6 +6,10 @@ namespace BrainBattle.Kings
 {
     public sealed class LevelLoader : MonoBehaviour
     {
+#if UNITY_EDITOR
+        private const string LevelsAssetPath = "Assets/_Project/ScriptableObjects/Kings/Levels";
+#endif
+
         [SerializeField] private LevelData[] _allLevels;
 
         private void Awake()
@@ -13,9 +17,7 @@ namespace BrainBattle.Kings
             if (_allLevels != null && _allLevels.Length > 0) return;
 
 #if UNITY_EDITOR
-            // _allLevels not populated in Inspector — auto-discover in editor so Play works
-            // without requiring a scene rebuild via BrainBattle > Build Kings Scene.
-            var guids = UnityEditor.AssetDatabase.FindAssets("t:LevelData");
+            var guids = UnityEditor.AssetDatabase.FindAssets("t:LevelData", new[] { LevelsAssetPath });
             var list  = new List<LevelData>(guids.Length);
             foreach (var guid in guids)
             {
@@ -23,9 +25,9 @@ namespace BrainBattle.Kings
                                 UnityEditor.AssetDatabase.GUIDToAssetPath(guid));
                 if (asset != null) list.Add(asset);
             }
-            list.Sort((a, b) => a.LevelNumber.CompareTo(b.LevelNumber));
+            list.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
             _allLevels = list.ToArray();
-            Debug.Log($"[LevelLoader] Auto-loaded {_allLevels.Length} levels from AssetDatabase.");
+            Debug.Log($"[LevelLoader] Auto-loaded {_allLevels.Length} levels from {LevelsAssetPath}.");
 #else
             Debug.LogError("[LevelLoader] _allLevels is empty. Assign level assets in the Inspector before building.");
 #endif
