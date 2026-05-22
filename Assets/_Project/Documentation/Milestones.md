@@ -57,6 +57,8 @@
   - [x] DiffPools updated to 35-level structure (Beginner 1-12, Expert 13-24, Impossible 25-35)
   - [x] LevelSelectButton shows 1-based display number per tab (not global level number)
   - [x] 35 level assets regenerated with Kings_Beginner_XX / Kings_Expert_XX / Kings_Impossible_XX naming
+  - [x] Per-tab independent unlock: first level of each tab always available; sequential unlock within tab only
+  - [x] Grid cell size reduced 320→250px so all 12 levels fit in one screen without scrolling
 ## Milestone 3: Random Map Mode
 ## Milestone 4: Game #2
 ## Milestone 5: PvP

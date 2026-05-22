@@ -229,9 +229,9 @@ namespace BrainBattle.Editor
             contentRt.sizeDelta  = new Vector2(0f, 0f);
 
             var grid              = contentGO.AddComponent<GridLayoutGroup>();
-            grid.padding          = new RectOffset(16, 16, 16, 16);
-            grid.cellSize         = new Vector2(320f, 320f);
-            grid.spacing          = new Vector2(16f, 16f);
+            grid.padding          = new RectOffset(14, 14, 14, 14);
+            grid.cellSize         = new Vector2(250f, 250f);
+            grid.spacing          = new Vector2(14f, 14f);
             grid.startCorner      = GridLayoutGroup.Corner.UpperLeft;
             grid.startAxis        = GridLayoutGroup.Axis.Horizontal;
             grid.childAlignment   = TextAnchor.UpperLeft;

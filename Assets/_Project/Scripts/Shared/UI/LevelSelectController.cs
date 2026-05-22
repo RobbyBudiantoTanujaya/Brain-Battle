@@ -113,14 +113,14 @@ namespace BrainBattle.Shared.UI
             int[] pool = DiffPools[diffIndex];
             for (int i = 0; i < pool.Length; i++)
             {
-                int lvl         = pool[i];
-                int displayNum  = i + 1; // show 1-based index within the tab
+                int lvl        = pool[i];
+                int displayNum = i + 1; // show 1-based index within the tab
 
                 var go  = Instantiate(_levelButtonPrefab, _gridContent);
                 var btn = go.GetComponent<LevelSelectButton>();
                 if (btn == null) continue;
 
-                btn.Setup(lvl, displayNum, StateFor(lvl));
+                btn.Setup(lvl, displayNum, StateFor(lvl, pool));
                 btn.OnLevelSelected += GoToLevel;
                 _buttons.Add(btn);
             }
@@ -128,12 +128,26 @@ namespace BrainBattle.Shared.UI
 
         // ── State helpers ─────────────────────────────────────────────────────────
 
-        private static LevelState StateFor(int lvl)
+        /// <summary>
+        /// Returns the state of a level within its difficulty pool.
+        /// • First level of every pool is always Available (or Completed).
+        /// • Subsequent levels unlock sequentially within the pool only.
+        /// </summary>
+        private static LevelState StateFor(int lvl, int[] pool)
         {
-            // Level 1 is always unlocked.
-            if (lvl <= 1) return Stars(1) > 0 ? LevelState.Completed : LevelState.Available;
-            // Locked if the previous level has never been completed.
-            if (Stars(lvl - 1) == 0) return LevelState.Locked;
+            bool isFirstInPool = pool.Length > 0 && pool[0] == lvl;
+            if (isFirstInPool)
+                return Stars(lvl) > 0 ? LevelState.Completed : LevelState.Available;
+
+            // Find the previous level inside the same pool.
+            int prevInPool = -1;
+            for (int i = 1; i < pool.Length; i++)
+            {
+                if (pool[i] == lvl) { prevInPool = pool[i - 1]; break; }
+            }
+
+            // Locked if the previous level in this pool has no stars yet.
+            if (prevInPool < 0 || Stars(prevInPool) == 0) return LevelState.Locked;
             return Stars(lvl) > 0 ? LevelState.Completed : LevelState.Available;
         }
 
@@ -160,7 +174,7 @@ namespace BrainBattle.Shared.UI
 
             foreach (int lvl in pool)
             {
-                if (StateFor(lvl) == LevelState.Available) { target = lvl; break; }
+                if (StateFor(lvl, pool) == LevelState.Available) { target = lvl; break; }
             }
 
             GoToLevel(target);
