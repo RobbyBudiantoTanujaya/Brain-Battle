@@ -11,7 +11,10 @@ namespace BrainBattle.Games.Kings.UI
     [RequireComponent(typeof(RectTransform))]
     public sealed class KingsGridRenderer : MonoBehaviour
     {
-        private const float IconScale = 0.55f;
+        private const float IconScale      = 0.55f; // dot fills ~55 % of cell
+        private const float CrownIconScale = 0.82f; // crown_1 is 347×224 (1.55:1); with preserveAspect
+                                                     // the displayed height = scale*(224/347)*cell ≈ 0.53*cell
+                                                     // matching the dot's visual size
 
         [SerializeField] private Sprite _dotSprite;
         [SerializeField] private Sprite _crownSprite;
@@ -43,9 +46,10 @@ namespace BrainBattle.Games.Kings.UI
 
         private sealed class CellView
         {
-            public Image Background;
-            public Image Icon;
-            public Color BaseColor;
+            public Image         Background;
+            public Image         Icon;
+            public RectTransform IconRt;
+            public Color         BaseColor;
         }
 
         // ── Cell interaction component ────────────────────────────────────────────
@@ -293,7 +297,7 @@ namespace BrainBattle.Games.Kings.UI
                     icon.preserveAspect = true;
                     icon.raycastTarget  = false;
 
-                    var view = new CellView { Background = fgImg, Icon = icon, BaseColor = regionColor };
+                    var view = new CellView { Background = fgImg, Icon = icon, IconRt = iconRt, BaseColor = regionColor };
                     _cellViews[r, c] = view;
                     ApplyCellState(view, cell.State);
 
@@ -317,10 +321,20 @@ namespace BrainBattle.Games.Kings.UI
                 case CellState.Dot:
                     view.Icon.sprite  = _dotSprite;
                     view.Icon.enabled = _dotSprite != null;
+                    if (view.IconRt != null)
+                    {
+                        float s = _cellSize * IconScale;
+                        view.IconRt.sizeDelta = new Vector2(s, s);
+                    }
                     break;
                 case CellState.Crown:
                     view.Icon.sprite  = _crownSprite;
                     view.Icon.enabled = _crownSprite != null;
+                    if (view.IconRt != null)
+                    {
+                        float s = _cellSize * CrownIconScale;
+                        view.IconRt.sizeDelta = new Vector2(s, s);
+                    }
                     break;
             }
         }
