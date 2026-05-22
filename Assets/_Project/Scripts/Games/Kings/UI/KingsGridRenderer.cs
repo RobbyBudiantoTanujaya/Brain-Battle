@@ -71,8 +71,21 @@ namespace BrainBattle.Games.Kings.UI
                 _self.anchoredPosition = Vector2.zero;
 
             // Load sprites from Resources if not pre-assigned via Inspector / SceneBuilder.
-            if (_dotSprite   == null) _dotSprite   = Resources.Load<Sprite>("Sprites/dot");
-            if (_crownSprite == null) _crownSprite = Resources.Load<Sprite>("Sprites/crown");
+            // dot.png is a single sprite (dot_0).
+            // crown.png is a multi-sprite sheet: crown_0=small circle, crown_1=crown icon, crown_2=thin bar.
+            // Use LoadAll and pick crown_1 (the actual crown shape).
+            if (_dotSprite == null)
+            {
+                var dots = Resources.LoadAll<Sprite>("Sprites/dot");
+                _dotSprite = dots.Length > 0 ? dots[0] : null;
+            }
+            if (_crownSprite == null)
+            {
+                var crowns = Resources.LoadAll<Sprite>("Sprites/crown");
+                // crown_1 is the full crown icon (347x224 px region)
+                foreach (var s in crowns) { if (s.name == "crown_1") { _crownSprite = s; break; } }
+                if (_crownSprite == null && crowns.Length > 0) _crownSprite = crowns[crowns.Length - 1];
+            }
         }
 
         // ── Public API ────────────────────────────────────────────────────────────

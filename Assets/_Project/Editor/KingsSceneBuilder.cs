@@ -32,6 +32,7 @@ namespace BrainBattle.Editor
             r.BootstrapGO = CreateSceneBootstrap();
             EnsureEventSystem();
 
+            CreateBackground(r);
             CreateGridContainer(r);
             CreateTimerBar(r);
             CreateTutorialOverlay(r);
@@ -144,6 +145,27 @@ namespace BrainBattle.Editor
         }
 
         // ── Canvas children ────────────────────────────────────────────────────────
+
+        static void CreateBackground(Refs r)
+        {
+            var bgGO = MakeUIGO("Background", r.Canvas.transform);
+            Stretch(bgGO);
+            bgGO.transform.SetSiblingIndex(0);
+
+            var img = bgGO.AddComponent<Image>();
+            img.color          = Color.white;
+            img.type           = Image.Type.Simple;
+            img.preserveAspect = false;
+
+            // main_menu_bg.png is a multi-sprite asset; use LoadAllAssetsAtPath to get first Sprite sub-asset.
+            const string BgPath = "Assets/_Project/Resources/Sprites/main_menu_bg.png";
+            foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(BgPath))
+            {
+                if (asset is Sprite s) { img.sprite = s; break; }
+            }
+            if (img.sprite == null)
+                Debug.LogWarning("[KingsSceneBuilder] main_menu_bg sprite not found — Background Image will be solid white.");
+        }
 
         static void CreateGridContainer(Refs r)
         {
@@ -491,11 +513,25 @@ namespace BrainBattle.Editor
             const string DotPath   = "Assets/_Project/Resources/Sprites/dot.png";
             const string CrownPath = "Assets/_Project/Resources/Sprites/crown.png";
 
-            var dotSprite   = AssetDatabase.LoadAssetAtPath<Sprite>(DotPath);
-            var crownSprite = AssetDatabase.LoadAssetAtPath<Sprite>(CrownPath);
+            // dot.png is a single sprite — LoadAssetAtPath<Sprite> works fine.
+            var dotSprite = AssetDatabase.LoadAssetAtPath<Sprite>(DotPath);
+            if (dotSprite == null)
+                Debug.LogWarning($"[KingsSceneBuilder] dot sprite not found at {DotPath}");
 
-            if (dotSprite   == null) Debug.LogWarning($"[KingsSceneBuilder] dot sprite not found at {DotPath}");
-            if (crownSprite == null) Debug.LogWarning($"[KingsSceneBuilder] crown sprite not found at {CrownPath}");
+            // crown.png is a multi-sprite sheet (crown_0 = small circle, crown_1 = crown icon, crown_2 = bar).
+            // LoadAssetAtPath<Sprite> only returns crown_0. Use LoadAllAssetsAtPath to find crown_1.
+            Sprite crownSprite = null;
+            Sprite crownFallback = null;
+            foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(CrownPath))
+            {
+                var s = asset as Sprite;
+                if (s == null) continue;
+                if (s.name == "crown_1") { crownSprite = s; break; }
+                crownFallback = s; // remember last sprite as fallback
+            }
+            if (crownSprite == null) crownSprite = crownFallback;
+            if (crownSprite == null)
+                Debug.LogWarning($"[KingsSceneBuilder] crown sprite not found at {CrownPath}");
 
             var so = new SerializedObject(renderer);
             so.FindProperty("_dotSprite").objectReferenceValue   = dotSprite;

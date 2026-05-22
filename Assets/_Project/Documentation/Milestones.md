@@ -77,6 +77,11 @@
     - [x] ScrollView Image: transparent; Viewport Image: Color.white (fixes Mask stencil clipping)
     - [x] LevelSelectSceneBuilder updated: prefab builder rewritten with SpriteImage child, grid 160×160/8px/16px
     - [x] LevelSelectButton prefab: SpriteImage child at index 0, root Color.clear, all 4 sprites pre-assigned
+- [x] Fix SampleScene game screen visuals
+  - [x] Crown sprite: crown.png is multi-sprite sheet; load crown_1 (347×224 px actual crown) via LoadAll instead of crown_0 (35×33 px circle)
+  - [x] KingsGridRenderer._crownSprite pre-assigned to crown_1 in Inspector (skips Awake Resources.Load)
+  - [x] SampleScene Canvas: Background Image added at sibling index 0, stretches full canvas, uses main_menu_bg sprite
+  - [x] KingsSceneBuilder updated: CreateBackground() adds main_menu_bg Image behind all children; AssignGridRendererSprites() now uses LoadAllAssetsAtPath to find crown_1
 ## Milestone 3: Random Map Mode
 ## Milestone 4: Game #2
 ## Milestone 5: PvP
