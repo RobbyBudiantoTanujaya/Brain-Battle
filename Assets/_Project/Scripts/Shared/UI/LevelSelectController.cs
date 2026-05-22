@@ -21,9 +21,9 @@ namespace BrainBattle.Shared.UI
         /// <summary>Level numbers that belong to each difficulty tab (Beginner / Expert / Impossible).</summary>
         private static readonly int[][] DiffPools =
         {
-            new[] { 1, 2 },   // Beginner  – 4×4, 5×5
-            new[] { 3, 4 },   // Expert    – 6×6, 8×8
-            new[] { 5 },      // Impossible – 10×10
+            new[] { 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12 },         // Beginner   – 4×4, 5×5
+            new[] { 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 },         // Expert     – 6×6, 8×8
+            new[] { 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35 },             // Impossible – 10×10
         };
 
         private static readonly Color ColTabActive   = new Color(0.93f, 0.26f, 0.56f, 1f);
@@ -110,13 +110,17 @@ namespace BrainBattle.Shared.UI
 
             if (_gridContent == null || _levelButtonPrefab == null) return;
 
-            foreach (int lvl in DiffPools[diffIndex])
+            int[] pool = DiffPools[diffIndex];
+            for (int i = 0; i < pool.Length; i++)
             {
+                int lvl         = pool[i];
+                int displayNum  = i + 1; // show 1-based index within the tab
+
                 var go  = Instantiate(_levelButtonPrefab, _gridContent);
                 var btn = go.GetComponent<LevelSelectButton>();
                 if (btn == null) continue;
 
-                btn.Setup(lvl, StateFor(lvl));
+                btn.Setup(lvl, displayNum, StateFor(lvl));
                 btn.OnLevelSelected += GoToLevel;
                 _buttons.Add(btn);
             }

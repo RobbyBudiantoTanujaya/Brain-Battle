@@ -22,8 +22,9 @@ namespace BrainBattle.Shared.UI
         [SerializeField] private GameObject      _checkmark;   // active when Completed
         [SerializeField] private GameObject      _lockOverlay; // active when Locked
 
-        public int        LevelNumber { get; private set; }
-        public LevelState State       { get; private set; }
+        public int        LevelNumber  { get; private set; }
+        public int        DisplayNumber { get; private set; }
+        public LevelState State        { get; private set; }
 
         public event Action<int> OnLevelSelected;
 
@@ -36,10 +37,16 @@ namespace BrainBattle.Shared.UI
                 _button.onClick.AddListener(HandleClick);
         }
 
-        public void Setup(int levelNumber, LevelState state)
+        /// <summary>
+        /// Configure the button.
+        /// <paramref name="levelNumber"/> is the global level number used for PlayerPrefs and navigation.
+        /// <paramref name="displayNumber"/> is the 1-based index shown in the UI label (e.g. 1-12 per tab).
+        /// </summary>
+        public void Setup(int levelNumber, int displayNumber, LevelState state)
         {
-            LevelNumber = levelNumber;
-            State       = state;
+            LevelNumber   = levelNumber;
+            DisplayNumber = displayNumber;
+            State         = state;
             Refresh();
         }
 
@@ -51,7 +58,7 @@ namespace BrainBattle.Shared.UI
 
         private void Refresh()
         {
-            if (_levelLabel  != null) _levelLabel.text = LevelNumber.ToString();
+            if (_levelLabel  != null) _levelLabel.text = DisplayNumber.ToString();
 
             bool locked    = State == LevelState.Locked;
             bool completed = State == LevelState.Completed;

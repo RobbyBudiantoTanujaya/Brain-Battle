@@ -45,7 +45,7 @@
 
 ## Milestone 2: Level Generation + Progression
 - [x] Level Select screen (LevelSelectController.cs, LevelSelectButton.cs, LevelSelectSceneBuilder editor tool)
-  - [x] 3 difficulty tabs: Beginner (1-2), Expert (3-4), Impossible (5) with active/inactive color
+  - [x] 3 difficulty tabs: Beginner (1-12), Expert (13-24), Impossible (25-35) with active/inactive color
   - [x] Progress bar per difficulty (filled Image, reads Kings_Level_N_Stars PlayerPrefs)
   - [x] Level grid: ScrollView + GridLayoutGroup (3 columns), LevelSelectButton prefab
   - [x] Level states: Locked (dark + X), Available (accent), Completed (accent + checkmark)
@@ -54,6 +54,9 @@
   - [x] Scene navigation: LevelSelect → SampleScene via Kings_PendingLevel PlayerPrefs
   - [x] KingsSceneBootstrap reads Kings_PendingLevel on boot (falls back to level 1)
   - [x] VictoryPanel Next Level + Menu both return to LevelSelect scene
+  - [x] DiffPools updated to 35-level structure (Beginner 1-12, Expert 13-24, Impossible 25-35)
+  - [x] LevelSelectButton shows 1-based display number per tab (not global level number)
+  - [x] 35 level assets regenerated with Kings_Beginner_XX / Kings_Expert_XX / Kings_Impossible_XX naming
 ## Milestone 3: Random Map Mode
 ## Milestone 4: Game #2
 ## Milestone 5: PvP
