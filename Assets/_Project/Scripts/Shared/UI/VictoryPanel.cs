@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using TMPro;
 using BrainBattle.Games.Kings.Logic;
 
@@ -84,7 +85,14 @@ namespace BrainBattle.Shared
         private void OnNextLevel()
         {
             _panel.SetActive(false);
-            _sceneBootstrap?.LoadLevel(_sceneBootstrap.CurrentLevelNumber + 1);
+            // Save which level to load when returning to the game scene,
+            // then go back to Level Select so the player sees their progress.
+            if (_sceneBootstrap != null)
+            {
+                PlayerPrefs.SetInt("Kings_PendingLevel", _sceneBootstrap.CurrentLevelNumber + 1);
+                PlayerPrefs.Save();
+            }
+            SceneManager.LoadScene("LevelSelect");
         }
 
         private void OnRestart()
@@ -95,7 +103,7 @@ namespace BrainBattle.Shared
 
         private void OnMainMenu()
         {
-            // Wire to scene load when main menu is implemented (Milestone 2+).
+            SceneManager.LoadScene("LevelSelect");
         }
 
         // ── Star rating ───────────────────────────────────────────────────────────

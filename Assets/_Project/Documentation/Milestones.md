@@ -40,10 +40,20 @@
 - [x] Border & centering polish — same-region 1.5px rgba(0,0,0,0.25), diff-region 4px rgba(0,0,0,0.8); usable size now uses side padding×2 vs top-only padding; _gridPanel shifted -padding/2 vertically to center within usable area
 - [x] Auto-X verified — row/col/region/adjacent index convention (Vector2Int x=col, y=row) traced through generator→loader→renderer→gamemanager, no off-by-one found; added inline comment
 - [x] Compound knowledge docs bootstrap — generated docs/ architecture, product-spec, constitution, quality, reliability, security, and run summary assets from current Unity codebase
-- [ ] HudController script (TimerText + MoveCountText live update — see SceneSetupGuide §7 MISMATCH 3)
+- [x] HUDController script (TimerText + MoveCountText live update via KingsGameManager.ElapsedSeconds + MoveCount in Update())
 - [ ] Polish & internal build
 
 ## Milestone 2: Level Generation + Progression
+- [x] Level Select screen (LevelSelectController.cs, LevelSelectButton.cs, LevelSelectSceneBuilder editor tool)
+  - [x] 3 difficulty tabs: Beginner (1-2), Expert (3-4), Impossible (5) with active/inactive color
+  - [x] Progress bar per difficulty (filled Image, reads Kings_Level_N_Stars PlayerPrefs)
+  - [x] Level grid: ScrollView + GridLayoutGroup (3 columns), LevelSelectButton prefab
+  - [x] Level states: Locked (dark + X), Available (accent), Completed (accent + checkmark)
+  - [x] Unlock rule: previous level must have stars > 0
+  - [x] Play button: loads first Available level in active tab
+  - [x] Scene navigation: LevelSelect → SampleScene via Kings_PendingLevel PlayerPrefs
+  - [x] KingsSceneBootstrap reads Kings_PendingLevel on boot (falls back to level 1)
+  - [x] VictoryPanel Next Level + Menu both return to LevelSelect scene
 ## Milestone 3: Random Map Mode
 ## Milestone 4: Game #2
 ## Milestone 5: PvP

@@ -7,6 +7,8 @@ namespace BrainBattle.Games.Kings.Logic
 {
     public sealed class KingsSceneBootstrap : MonoBehaviour
     {
+        private const string PendingLevelKey = "Kings_PendingLevel";
+
         [SerializeField] private LevelLoader      _levelLoader;
         [SerializeField] private KingsGameManager _gameManager;
 
@@ -16,11 +18,16 @@ namespace BrainBattle.Games.Kings.Logic
 
         // Wait one frame so the Canvas CanvasScaler has run and all RectTransforms
         // have their correct world-space sizes before RenderGrid reads them.
+        // Reads Kings_PendingLevel from PlayerPrefs (set by LevelSelectController),
+        // falling back to level 1 when launched directly in the Editor.
         private IEnumerator BootDeferred()
         {
             yield return null;
-            Debug.Log("[KingsSceneBootstrap] BootDeferred — calling LoadLevel(1)");
-            LoadLevel(1);
+            int level = PlayerPrefs.GetInt(PendingLevelKey, 1);
+            PlayerPrefs.DeleteKey(PendingLevelKey);
+            PlayerPrefs.Save();
+            Debug.Log($"[KingsSceneBootstrap] BootDeferred — calling LoadLevel({level})");
+            LoadLevel(level);
         }
 
         public void LoadLevel(int levelNumber)
