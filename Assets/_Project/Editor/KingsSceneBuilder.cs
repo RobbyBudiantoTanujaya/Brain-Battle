@@ -346,8 +346,11 @@ namespace BrainBattle.Editor
             var restComp  = r.HudRestartGO.GetComponent<RestartButton>();
             var tipsComp  = r.TipsButtonGO.GetComponent<TipsButton>();
 
-            // KingsGridRenderer — assign sprites automatically.
+            // KingsGridRenderer — assign crown/dot sprites automatically.
             AssignGridRendererSprites(renderer);
+
+            // LevelSelectButton prefab — pre-assign 4 level-state sprites.
+            AssignLevelSelectButtonSprites();
 
             // KingsGameManager
             Set(mgr, "_gridRenderer",       renderer);
@@ -481,25 +484,60 @@ namespace BrainBattle.Editor
             rt.sizeDelta        = Vector2.zero;
         }
 
-        // Loads DotSprite and CrownSprite from the project's Resources folder and assigns
+        // Loads dot and crown sprites from the project's Resources folder and assigns
         // them to KingsGridRenderer._dotSprite / _crownSprite via SerializedObject.
         static void AssignGridRendererSprites(KingsGridRenderer renderer)
         {
-            const string DotPath   = "Assets/_Project/Resources/Sprites/DotSprite.png";
-            const string CrownPath = "Assets/_Project/Resources/Sprites/CrownSprite.png";
+            const string DotPath   = "Assets/_Project/Resources/Sprites/dot.png";
+            const string CrownPath = "Assets/_Project/Resources/Sprites/crown.png";
 
             var dotSprite   = AssetDatabase.LoadAssetAtPath<Sprite>(DotPath);
             var crownSprite = AssetDatabase.LoadAssetAtPath<Sprite>(CrownPath);
 
-            if (dotSprite   == null) Debug.LogWarning($"[KingsSceneBuilder] DotSprite not found at {DotPath}");
-            if (crownSprite == null) Debug.LogWarning($"[KingsSceneBuilder] CrownSprite not found at {CrownPath}");
+            if (dotSprite   == null) Debug.LogWarning($"[KingsSceneBuilder] dot sprite not found at {DotPath}");
+            if (crownSprite == null) Debug.LogWarning($"[KingsSceneBuilder] crown sprite not found at {CrownPath}");
 
             var so = new SerializedObject(renderer);
             so.FindProperty("_dotSprite").objectReferenceValue   = dotSprite;
             so.FindProperty("_crownSprite").objectReferenceValue = crownSprite;
             so.ApplyModifiedPropertiesWithoutUndo();
 
-            Debug.Log($"[KingsSceneBuilder] Sprites assigned — dot={(dotSprite != null ? dotSprite.name : "MISSING")}, crown={(crownSprite != null ? crownSprite.name : "MISSING")}");
+            Debug.Log($"[KingsSceneBuilder] Grid sprites assigned — dot={(dotSprite != null ? dotSprite.name : "MISSING")}, crown={(crownSprite != null ? crownSprite.name : "MISSING")}");
+        }
+
+        // Pre-assigns the 4 level-button sprites to the LevelSelectButton prefab so they
+        // appear in the Inspector and avoid a Resources.Load call at runtime.
+        static void AssignLevelSelectButtonSprites()
+        {
+            const string PrefabPath = "Assets/_Project/Prefabs/LevelSelectButton.prefab";
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+            if (prefab == null)
+            {
+                Debug.LogWarning($"[KingsSceneBuilder] LevelSelectButton prefab not found at {PrefabPath} — run Build Level Select Scene first.");
+                return;
+            }
+
+            var lsb = prefab.GetComponent<BrainBattle.Shared.UI.LevelSelectButton>();
+            if (lsb == null)
+            {
+                Debug.LogWarning("[KingsSceneBuilder] LevelSelectButton component missing from prefab.");
+                return;
+            }
+
+            var so = new SerializedObject(lsb);
+            so.FindProperty("_spriteAvailable").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Project/Resources/Sprites/level_available.png");
+            so.FindProperty("_spriteCompleted").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Project/Resources/Sprites/level_completed.png");
+            so.FindProperty("_spriteActive").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Project/Resources/Sprites/level_active.png");
+            so.FindProperty("_spriteLocked").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Project/Resources/Sprites/level_lock.png");
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            EditorUtility.SetDirty(prefab);
+            AssetDatabase.SaveAssetIfDirty(prefab);
+            Debug.Log("[KingsSceneBuilder] LevelSelectButton prefab sprites assigned.");
         }
 
         // Finds every LevelData asset in the project and assigns them (sorted by LevelNumber)

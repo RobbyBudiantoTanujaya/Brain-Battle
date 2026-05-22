@@ -69,6 +69,10 @@ namespace BrainBattle.Games.Kings.UI
             // For point-anchor (legacy) layouts, ensure the container stays centred.
             if (_self.anchorMin == _self.anchorMax)
                 _self.anchoredPosition = Vector2.zero;
+
+            // Load sprites from Resources if not pre-assigned via Inspector / SceneBuilder.
+            if (_dotSprite   == null) _dotSprite   = Resources.Load<Sprite>("Sprites/dot");
+            if (_crownSprite == null) _crownSprite = Resources.Load<Sprite>("Sprites/crown");
         }
 
         // ── Public API ────────────────────────────────────────────────────────────

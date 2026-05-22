@@ -14,6 +14,7 @@ namespace BrainBattle.Shared.UI
     /// </summary>
     public sealed class LevelSelectButton : MonoBehaviour
     {
+        // Fallback solid colours used when sprites are unavailable.
         private static readonly Color ColAccent = new Color(0.93f, 0.26f, 0.56f, 1f); // pink
         private static readonly Color ColLocked = new Color(0.12f, 0.12f, 0.18f, 1f); // dark
 
@@ -21,6 +22,12 @@ namespace BrainBattle.Shared.UI
         [SerializeField] private TextMeshProUGUI _levelLabel;
         [SerializeField] private GameObject      _checkmark;   // active when Completed
         [SerializeField] private GameObject      _lockOverlay; // active when Locked
+
+        [Header("Sprites (auto-loaded from Resources if not assigned)")]
+        [SerializeField] private Sprite _spriteAvailable;
+        [SerializeField] private Sprite _spriteCompleted;
+        [SerializeField] private Sprite _spriteActive;   // reserved for current/highlighted level
+        [SerializeField] private Sprite _spriteLocked;
 
         public int        LevelNumber  { get; private set; }
         public int        DisplayNumber { get; private set; }
@@ -35,6 +42,12 @@ namespace BrainBattle.Shared.UI
             _button = GetComponent<Button>();
             if (_button != null)
                 _button.onClick.AddListener(HandleClick);
+
+            // Load sprites from Resources if not pre-assigned via Inspector / SceneBuilder.
+            if (_spriteAvailable == null) _spriteAvailable = Resources.Load<Sprite>("Sprites/level_available");
+            if (_spriteCompleted == null) _spriteCompleted = Resources.Load<Sprite>("Sprites/level_completed");
+            if (_spriteActive    == null) _spriteActive    = Resources.Load<Sprite>("Sprites/level_active");
+            if (_spriteLocked    == null) _spriteLocked    = Resources.Load<Sprite>("Sprites/level_lock");
         }
 
         /// <summary>
@@ -58,15 +71,33 @@ namespace BrainBattle.Shared.UI
 
         private void Refresh()
         {
-            if (_levelLabel  != null) _levelLabel.text = DisplayNumber.ToString();
+            if (_levelLabel != null) _levelLabel.text = DisplayNumber.ToString();
 
             bool locked    = State == LevelState.Locked;
             bool completed = State == LevelState.Completed;
 
-            if (_background  != null) _background.color     = locked ? ColLocked : ColAccent;
+            if (_background != null)
+            {
+                // Pick sprite for this state; fall back to solid colour when sprite is null.
+                Sprite sprite = locked    ? _spriteLocked    :
+                                completed ? _spriteCompleted :
+                                            _spriteAvailable;
+
+                if (sprite != null)
+                {
+                    _background.sprite = sprite;
+                    _background.color  = Color.white; // let the sprite's own colours show
+                }
+                else
+                {
+                    _background.sprite = null;
+                    _background.color  = locked ? ColLocked : ColAccent;
+                }
+            }
+
             if (_checkmark   != null) _checkmark.SetActive(completed);
             if (_lockOverlay != null) _lockOverlay.SetActive(locked);
-            if (_button      != null) _button.interactable  = !locked;
+            if (_button      != null) _button.interactable = !locked;
         }
     }
 }

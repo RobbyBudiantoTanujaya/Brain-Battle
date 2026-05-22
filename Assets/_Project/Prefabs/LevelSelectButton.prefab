@@ -140,6 +140,10 @@ MonoBehaviour:
   _levelLabel: {fileID: 463785704576981890}
   _checkmark: {fileID: 5803691582127732538}
   _lockOverlay: {fileID: 5180734978447962702}
+  _spriteAvailable: {fileID: 5045138071335880586, guid: 895872b3e33319c4e90cf593c2c6a24e, type: 3}
+  _spriteCompleted: {fileID: -2863490436726908652, guid: 15987981bf2a7464aab30ef003a52b75, type: 3}
+  _spriteActive: {fileID: 847331455644196665, guid: 18968e659991cfe44acbf930209853c3, type: 3}
+  _spriteLocked: {fileID: 3021553401543793347, guid: 913b179bbad909d45b54db23b727a162, type: 3}
 --- !u!1 &5180734978447962702
 GameObject:
   m_ObjectHideFlags: 0

@@ -41,6 +41,15 @@
 - [x] Auto-X verified — row/col/region/adjacent index convention (Vector2Int x=col, y=row) traced through generator→loader→renderer→gamemanager, no off-by-one found; added inline comment
 - [x] Compound knowledge docs bootstrap — generated docs/ architecture, product-spec, constitution, quality, reliability, security, and run summary assets from current Unity codebase
 - [x] HUDController script (TimerText + MoveCountText live update via KingsGameManager.ElapsedSeconds + MoveCount in Update())
+- [x] Sprite asset replacement — production sprites replace all placeholders
+  - [x] KingsGridRenderer: crown/dot loaded via Resources.Load("Sprites/crown|dot") with SerializeField fallback
+  - [x] LevelSelectButton: 4 state sprites (available/completed/active/locked) via Resources.Load; sprite-based Refresh() with color fallback
+  - [x] KingsSceneBuilder: updated AssignGridRendererSprites to new paths; added AssignLevelSelectButtonSprites for prefab pre-assign
+  - [x] VictoryPanel: victory_screen_bg applied to panel Image in Awake
+  - [x] MainMenuController.cs created (Shared/UI) — loads main_menu_bg sprite
+  - [x] Old placeholder sprites deleted (DotSprite.png, CrownSprite.png)
+  - [x] SampleScene KingsGridRenderer re-wired to new dot/crown sprites
+  - [x] LevelSelectButton prefab pre-assigned with all 4 level-state sprites
 - [ ] Polish & internal build
 
 ## Milestone 2: Level Generation + Progression

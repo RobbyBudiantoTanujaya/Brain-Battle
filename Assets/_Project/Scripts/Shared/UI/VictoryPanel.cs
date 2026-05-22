@@ -27,6 +27,7 @@ namespace BrainBattle.Shared
         [SerializeField] private Button              _mainMenuButton;
         [SerializeField] private KingsGameManager    _gameManager;
         [SerializeField] private KingsSceneBootstrap _sceneBootstrap;
+        [SerializeField] private Image               _backgroundImage; // VictoryContent background
 
         private RectTransform _panelRt;
 
@@ -42,6 +43,22 @@ namespace BrainBattle.Shared
             _nextLevelButton.onClick.AddListener(OnNextLevel);
             _restartButton.onClick.AddListener(OnRestart);
             _mainMenuButton.onClick.AddListener(OnMainMenu);
+
+            // Apply victory background sprite. Uses _backgroundImage if wired in Inspector;
+            // falls back to the Image on _panel itself.
+            var targetImage = _backgroundImage != null
+                ? _backgroundImage
+                : _panel.GetComponent<Image>();
+
+            if (targetImage != null)
+            {
+                var bg = Resources.Load<Sprite>("Sprites/victory_screen_bg");
+                if (bg != null)
+                {
+                    targetImage.sprite = bg;
+                    targetImage.color  = Color.white;
+                }
+            }
         }
 
         private void Start()

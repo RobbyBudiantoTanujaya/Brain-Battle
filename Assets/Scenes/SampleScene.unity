@@ -3948,8 +3948,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c4e49ea501766d94595395ce71ebdedf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _dotSprite: {fileID: -6658249346050042790, guid: 346e226694973ce4bb7a6725a195f54d, type: 3}
-  _crownSprite: {fileID: 792425472391589793, guid: 40e6af34410633d46bd67f4d8e979e22, type: 3}
+  _dotSprite: {fileID: -7632292786504573332, guid: b0eb0f6a952b9164a96cbbc0034be8ed, type: 3}
+  _crownSprite: {fileID: -8222406987496834216, guid: 7574fc034cb831f4791a6bc7b84f1996, type: 3}
   _padding: 16
   _thinBorderColor: {r: 0, g: 0, b: 0, a: 0.25}
   _thickBorderColor: {r: 0, g: 0, b: 0, a: 0.8}
@@ -5435,6 +5435,7 @@ MonoBehaviour:
   _mainMenuButton: {fileID: 1305136949}
   _gameManager: {fileID: 1031091509}
   _sceneBootstrap: {fileID: 863211089}
+  _backgroundImage: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
