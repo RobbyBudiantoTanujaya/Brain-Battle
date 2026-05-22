@@ -39,6 +39,7 @@
 - [x] Border rendering matches reference — thin 1px rgba(0,0,0,0.15) between same-region cells; thick 3px rgba(0,0,0,0.85) between different-region cells; 4 outer border lines (3px dark) drawn separately; cell bg uses full region color, no darkening
 - [x] Border & centering polish — same-region 1.5px rgba(0,0,0,0.25), diff-region 4px rgba(0,0,0,0.8); usable size now uses side padding×2 vs top-only padding; _gridPanel shifted -padding/2 vertically to center within usable area
 - [x] Auto-X verified — row/col/region/adjacent index convention (Vector2Int x=col, y=row) traced through generator→loader→renderer→gamemanager, no off-by-one found; added inline comment
+- [x] Compound knowledge docs bootstrap — generated docs/ architecture, product-spec, constitution, quality, reliability, security, and run summary assets from current Unity codebase
 - [ ] HudController script (TimerText + MoveCountText live update — see SceneSetupGuide §7 MISMATCH 3)
 - [ ] Polish & internal build
 
