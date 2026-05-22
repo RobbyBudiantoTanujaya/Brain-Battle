@@ -82,6 +82,7 @@
   - [x] KingsGridRenderer._crownSprite pre-assigned to crown_1 in Inspector (skips Awake Resources.Load)
   - [x] SampleScene Canvas: Background Image added at sibling index 0, stretches full canvas, uses main_menu_bg sprite
   - [x] KingsSceneBuilder updated: CreateBackground() adds main_menu_bg Image behind all children; AssignGridRendererSprites() now uses LoadAllAssetsAtPath to find crown_1
+- [x] Fix: KingsSceneBootstrap redirects to LevelSelect when Kings_PendingLevel key absent (prevents SampleScene from auto-starting game when launched directly from Editor or cold boot)
 ## Milestone 3: Random Map Mode
 ## Milestone 4: Game #2
 ## Milestone 5: PvP

@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using BrainBattle.Core.Models;
 using BrainBattle.Kings;
 
@@ -18,11 +19,20 @@ namespace BrainBattle.Games.Kings.Logic
 
         // Wait one frame so the Canvas CanvasScaler has run and all RectTransforms
         // have their correct world-space sizes before RenderGrid reads them.
-        // Reads Kings_PendingLevel from PlayerPrefs (set by LevelSelectController),
-        // falling back to level 1 when launched directly in the Editor.
+        // Reads Kings_PendingLevel from PlayerPrefs (set by LevelSelectController).
+        // If the key is absent (e.g. SampleScene launched directly from the Editor),
+        // redirect to LevelSelect instead of defaulting to level 1.
         private IEnumerator BootDeferred()
         {
             yield return null;
+
+            if (!PlayerPrefs.HasKey(PendingLevelKey))
+            {
+                Debug.Log("[KingsSceneBootstrap] No PendingLevel found — redirecting to LevelSelect.");
+                SceneManager.LoadScene("LevelSelect");
+                yield break;
+            }
+
             int level = PlayerPrefs.GetInt(PendingLevelKey, 1);
             PlayerPrefs.DeleteKey(PendingLevelKey);
             PlayerPrefs.Save();
