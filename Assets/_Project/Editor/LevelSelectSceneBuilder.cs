@@ -212,10 +212,11 @@ namespace BrainBattle.Editor
             scroll.vertical         = true;
             scroll.scrollSensitivity = 30f;
 
-            // Viewport
+            // Viewport — Image MUST be opaque (Color.white) for the Mask stencil to clip correctly.
+            // showMaskGraphic=false hides the image visually while still defining the clip region.
             var viewportGO = UI("Viewport", scrollGO.transform);
             Stretch(viewportGO);
-            viewportGO.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0f);
+            viewportGO.AddComponent<Image>().color = Color.white;
             viewportGO.AddComponent<Mask>().showMaskGraphic = false;
 
             // Content (GridLayoutGroup)
