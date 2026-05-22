@@ -46,7 +46,8 @@ namespace BrainBattle.Editor
             r.Prefab  = prefabGO;
             r.Canvas  = CreateCanvas();
             r.Control = CreateController();
-            EnsureEventSystem();
+            CreateCamera();
+            CreateEventSystem(); // Always create — do NOT use FindFirstObjectByType (multi-scene!)
 
             BuildUI(r);
             WireController(r);
@@ -61,12 +62,26 @@ namespace BrainBattle.Editor
             Debug.Log("[LevelSelectSceneBuilder] Scene saved → " + ScenePath);
         }
 
-        // ── EventSystem ────────────────────────────────────────────────────────────
+        // ── Camera ─────────────────────────────────────────────────────────────────
 
-        static void EnsureEventSystem()
+        static void CreateCamera()
         {
-            if (Object.FindFirstObjectByType<EventSystem>() != null) return;
+            var go               = new GameObject("Main Camera");
+            go.tag               = "MainCamera";
+            var cam              = go.AddComponent<Camera>();
+            cam.clearFlags       = CameraClearFlags.SolidColor;
+            cam.backgroundColor  = new Color(0.06f, 0.06f, 0.10f, 1f);
+            cam.orthographic     = true;
+            go.AddComponent<AudioListener>();
+            go.transform.position = new Vector3(0f, 0f, -10f);
+        }
 
+        // ── EventSystem ────────────────────────────────────────────────────────────
+        // Always create fresh — never use FindFirstObjectByType (finds objects in OTHER
+        // loaded scenes when running additively, causing EventSystem to be skipped).
+
+        static void CreateEventSystem()
+        {
             var go = new GameObject("EventSystem");
             go.AddComponent<EventSystem>();
 
@@ -363,23 +378,17 @@ namespace BrainBattle.Editor
 
         static void AddToOrUpdateBuildSettings()
         {
+            // Rebuild the list: LevelSelect at index 0, SampleScene at index 1.
+            // Remove stale entries for both so we can re-insert in the correct order.
             var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
+            scenes.RemoveAll(s => s.path.Contains("LevelSelect") || s.path.Contains("SampleScene"));
 
-            bool sampleFound   = false;
-            bool levelSelFound = false;
-            foreach (var s in scenes)
-            {
-                if (s.path.Contains("SampleScene"))   sampleFound   = true;
-                if (s.path.Contains("LevelSelect"))   levelSelFound = true;
-            }
-
-            if (!sampleFound)
-                scenes.Insert(0, new EditorBuildSettingsScene("Assets/Scenes/SampleScene.unity", true));
-            if (!levelSelFound)
-                scenes.Add(new EditorBuildSettingsScene(ScenePath, true));
+            // LevelSelect MUST be index 0 (first scene loaded in a build).
+            scenes.Insert(0, new EditorBuildSettingsScene(ScenePath, true));
+            scenes.Insert(1, new EditorBuildSettingsScene("Assets/Scenes/SampleScene.unity", true));
 
             EditorBuildSettings.scenes = scenes.ToArray();
-            Debug.Log("[LevelSelectSceneBuilder] Build settings updated.");
+            Debug.Log("[LevelSelectSceneBuilder] Build settings: LevelSelect=0, SampleScene=1.");
         }
 
         // ── Primitive helpers (same pattern as KingsSceneBuilder) ──────────────────
