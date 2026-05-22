@@ -31,11 +31,22 @@ namespace BrainBattle.Shared
 
         private void Awake()
         {
+            if (_panel == null)
+            {
+                Debug.LogError("[VictoryPanel] _panel (VictoryContent) is not assigned. Check SerializeField wiring in the Inspector.");
+                return;
+            }
             _panel.SetActive(false);
             _panelRt = _panel.GetComponent<RectTransform>();
             _nextLevelButton.onClick.AddListener(OnNextLevel);
             _restartButton.onClick.AddListener(OnRestart);
             _mainMenuButton.onClick.AddListener(OnMainMenu);
+        }
+
+        private void Start()
+        {
+            // Safety: re-hide in case Awake ran but something re-activated the panel.
+            _panel?.SetActive(false);
         }
 
         private void OnEnable()

@@ -10,10 +10,11 @@ namespace BrainBattle.Games.Kings.Logic
 {
     public sealed class KingsGameManager : MonoBehaviour
     {
-        private const int    MaxUndoHistory = 50;
-        private const string SaveKeyGrid    = "Kings_Grid";
-        private const string SaveKeyTime    = "Kings_Time";
-        private const string SaveKeyMoves   = "Kings_Moves";
+        private const int    MaxUndoHistory    = 50;
+        private const string SaveKeyGrid      = "Kings_Grid";
+        private const string SaveKeyTime      = "Kings_Time";
+        private const string SaveKeyMoves     = "Kings_Moves";
+        private const float  DoubleTapWindow  = 0.3f;
 
         [SerializeField] private KingsGridRenderer  _gridRenderer;
         [SerializeField] private GridData           _currentGrid;
@@ -34,14 +35,17 @@ namespace BrainBattle.Games.Kings.Logic
             ? _timerOffset + (Time.unscaledTime - _timerStartUnscaled)
             : _timerOffset;
 
-        /// <summary>Total CycleState calls made this session. Not decremented by undo.</summary>
-        public int MoveCount       => _moveCount;
-        public int CurrentGridSize => _currentGrid?.Size ?? 0;
-        public int HintsUsed       { get; private set; }
+        /// <summary>Total cell-state changes made this session. Not decremented by undo.</summary>
+        public int  MoveCount       => _moveCount;
+        public int  CurrentGridSize => _currentGrid?.Size ?? 0;
+        public int  HintsUsed       { get; private set; }
 
         // ── Private state ─────────────────────────────────────────────────────────
 
         private readonly Stack<GridData> _undoStack = new();
+
+        // Key = crown position (x=col, y=row), Value = dot positions auto-placed by that crown.
+        private readonly Dictionary<Vector2Int, HashSet<Vector2Int>> _autoPlacedDots = new();
 
         private GridData _initialGrid;
         private int      _moveCount;
@@ -52,12 +56,19 @@ namespace BrainBattle.Games.Kings.Logic
         private float _timerStartUnscaled;
         private bool  _timerActive;
 
+        // Double-tap detection: track the last single tap per (row, col).
+        private float      _lastTapTime = float.MinValue;
+        private Vector2Int _lastTapCell = new(-1, -1);
+
         // ── MonoBehaviour ─────────────────────────────────────────────────────────
 
         private void OnEnable()
         {
             if (_gridRenderer != null)
-                _gridRenderer.OnCellTapped += OnCellTapped;
+            {
+                _gridRenderer.OnCellTapped      += OnCellTapped;
+                _gridRenderer.OnCellDragEntered += OnCellDragEntered;
+            }
             if (_tutorialController != null)
                 _tutorialController.OnTutorialComplete += OnTutorialCompleted;
         }
@@ -65,7 +76,10 @@ namespace BrainBattle.Games.Kings.Logic
         private void OnDisable()
         {
             if (_gridRenderer != null)
-                _gridRenderer.OnCellTapped -= OnCellTapped;
+            {
+                _gridRenderer.OnCellTapped      -= OnCellTapped;
+                _gridRenderer.OnCellDragEntered -= OnCellDragEntered;
+            }
             if (_tutorialController != null)
                 _tutorialController.OnTutorialComplete -= OnTutorialCompleted;
         }
@@ -91,14 +105,23 @@ namespace BrainBattle.Games.Kings.Logic
         public void StartGame(GridData grid)
         {
             if (grid == null) throw new ArgumentNullException(nameof(grid));
+            Debug.Log($"[KingsGameManager] StartGame — gridSize={grid.Size}, gridRenderer={(object)_gridRenderer ?? (object)"NULL"}");
+            if (_gridRenderer == null)
+            {
+                Debug.LogError("[KingsGameManager] _gridRenderer is null — check SerializeField wiring on KingsGameManager.");
+                return;
+            }
 
             _initialGrid = DeepCopy(grid);
             _currentGrid = DeepCopy(grid);
 
             _undoStack.Clear();
-            _moveCount  = 0;
-            HintsUsed   = 0;
-            _gameActive = true;
+            _autoPlacedDots.Clear();
+            _moveCount    = 0;
+            HintsUsed     = 0;
+            _gameActive   = true;
+            _lastTapTime  = float.MinValue;
+            _lastTapCell  = new(-1, -1);
 
             ResetTimer();
 
@@ -116,6 +139,9 @@ namespace BrainBattle.Games.Kings.Logic
             if (_undoStack.Count == 0 || !_gameActive) return;
 
             _currentGrid = _undoStack.Pop();
+            _autoPlacedDots.Clear();
+            _lastTapTime = float.MinValue;
+            _lastTapCell = new(-1, -1);
 
             _gridRenderer.ClearConflicts();
             _gridRenderer.RenderGrid(_currentGrid);
@@ -130,9 +156,12 @@ namespace BrainBattle.Games.Kings.Logic
 
             _currentGrid = DeepCopy(_initialGrid);
             _undoStack.Clear();
-            _moveCount  = 0;
-            HintsUsed   = 0;
-            _gameActive = true;
+            _autoPlacedDots.Clear();
+            _moveCount   = 0;
+            HintsUsed    = 0;
+            _gameActive  = true;
+            _lastTapTime = float.MinValue;
+            _lastTapCell = new(-1, -1);
 
             ResetTimer();
 
@@ -197,18 +226,74 @@ namespace BrainBattle.Games.Kings.Logic
 
         private void OnCellTapped(int row, int col)
         {
-            Debug.Log($"[KingsGameManager] GameManager received tap: ({row}, {col})");
             if (!_gameActive || _currentGrid == null || _gridRenderer == null) return;
+
+            CellState currentState = _currentGrid.GetCell(row, col).State;
+            CellState newState;
+
+            if (currentState == CellState.Crown)
+            {
+                // Tap on Crown always clears it.
+                newState     = CellState.Empty;
+                _lastTapTime = Time.unscaledTime;
+                _lastTapCell = new Vector2Int(col, row);
+            }
+            else
+            {
+                var   thisCell       = new Vector2Int(col, row);
+                float timeSinceLast  = Time.unscaledTime - _lastTapTime;
+                bool  isDoubleTap    = timeSinceLast < DoubleTapWindow && thisCell == _lastTapCell;
+
+                if (isDoubleTap)
+                {
+                    newState     = CellState.Crown;
+                    // Reset so a rapid third tap is treated as a new single tap.
+                    _lastTapTime = float.MinValue;
+                    _lastTapCell = new(-1, -1);
+                }
+                else
+                {
+                    newState     = currentState == CellState.Dot ? CellState.Empty : CellState.Dot;
+                    _lastTapTime = Time.unscaledTime;
+                    _lastTapCell = thisCell;
+                }
+            }
 
             PushUndoSnapshot();
             FireUndoStackChanged();
 
-            _currentGrid.CycleState(row, col);
+            _currentGrid.SetCellState(row, col, newState);
             _moveCount++;
-
-            CellState newState = _currentGrid.GetCell(row, col).State;
             _gridRenderer.UpdateCell(row, col, newState);
 
+            if (currentState == CellState.Crown)
+                RemoveAutoX(row, col);
+            else if (newState == CellState.Crown)
+                ApplyAutoX(row, col);
+
+            FinishMove(row, col, newState);
+        }
+
+        private void OnCellDragEntered(int row, int col, CellState targetState)
+        {
+            if (!_gameActive || _currentGrid == null || _gridRenderer == null) return;
+            CellState current = _currentGrid.GetCell(row, col).State;
+            if (current == targetState) return;
+            // Never overwrite a Crown via drag; crowns require an explicit double-tap.
+            if (current == CellState.Crown) return;
+
+            _currentGrid.SetCellState(row, col, targetState);
+            _moveCount++;
+            _gridRenderer.UpdateCell(row, col, targetState);
+
+            if (targetState == CellState.Crown)
+                ApplyAutoX(row, col);
+
+            FinishMove(row, col, targetState);
+        }
+
+        private void FinishMove(int row, int col, CellState newState)
+        {
             AutoSave();
 
             var result = ConstraintValidator.ValidateMove(_currentGrid, row, col, newState);
@@ -242,6 +327,83 @@ namespace BrainBattle.Games.Kings.Logic
 
         private void FireUndoStackChanged() => OnUndoStackChanged?.Invoke(_undoStack.Count > 0);
         private void OnTutorialCompleted() { }
+
+        // ── Private: Auto-X ───────────────────────────────────────────────────────
+
+        private void ApplyAutoX(int crownRow, int crownCol)
+        {
+            // Convention throughout: Vector2Int stores (x=col, y=row).
+            // TryAutoPlaceDot(row, col) — row first, matching GetCell(row, col).
+            // RegionData.Cells entries are Vector2Int(col, row) as stored by LevelLoader.
+            // This was verified against LevelGeneratorService (new Vector2Int(c, r)) and
+            // LevelLoader.BuildGridFromLevel (grid.GetCell(cell.y, cell.x)) — no off-by-one.
+            var crownPos = new Vector2Int(crownCol, crownRow);
+            var autoSet  = new HashSet<Vector2Int>();
+            int size     = _currentGrid.Size;
+            int regionId = _currentGrid.GetCell(crownRow, crownCol).RegionId;
+
+            // Fill entire row (all columns except crown column).
+            for (int c = 0; c < size; c++)
+                if (c != crownCol) TryAutoPlaceDot(crownRow, c, autoSet);
+
+            // Fill entire column (all rows except crown row).
+            for (int r = 0; r < size; r++)
+                if (r != crownRow) TryAutoPlaceDot(r, crownCol, autoSet);
+
+            // Fill all other cells in the same region.
+            foreach (var region in _currentGrid.Regions)
+            {
+                if (region.RegionId != regionId) continue;
+                foreach (var pos in region.Cells) // pos.x = col, pos.y = row
+                    if (pos.x != crownCol || pos.y != crownRow)
+                        TryAutoPlaceDot(pos.y, pos.x, autoSet);
+                break;
+            }
+
+            for (int dr = -1; dr <= 1; dr++)
+                for (int dc = -1; dc <= 1; dc++)
+                {
+                    if (dr == 0 && dc == 0) continue;
+                    int nr = crownRow + dr, nc = crownCol + dc;
+                    if ((uint)nr < (uint)size && (uint)nc < (uint)size)
+                        TryAutoPlaceDot(nr, nc, autoSet);
+                }
+
+            _autoPlacedDots[crownPos] = autoSet;
+        }
+
+        private void TryAutoPlaceDot(int row, int col, HashSet<Vector2Int> autoSet)
+        {
+            if (_currentGrid.GetCell(row, col).State != CellState.Empty) return;
+            _currentGrid.SetCellState(row, col, CellState.Dot);
+            _gridRenderer.UpdateCell(row, col, CellState.Dot);
+            autoSet.Add(new Vector2Int(col, row));
+        }
+
+        private void RemoveAutoX(int crownRow, int crownCol)
+        {
+            var crownPos = new Vector2Int(crownCol, crownRow);
+            if (!_autoPlacedDots.TryGetValue(crownPos, out var autoSet)) return;
+
+            foreach (var dotPos in autoSet)
+            {
+                // Keep the dot if another crown also auto-placed it.
+                bool coveredByOther = false;
+                foreach (var kv in _autoPlacedDots)
+                {
+                    if (kv.Key == crownPos) continue;
+                    if (kv.Value.Contains(dotPos)) { coveredByOther = true; break; }
+                }
+
+                if (!coveredByOther && _currentGrid.GetCell(dotPos.y, dotPos.x).State == CellState.Dot)
+                {
+                    _currentGrid.SetCellState(dotPos.y, dotPos.x, CellState.Empty);
+                    _gridRenderer.UpdateCell(dotPos.y, dotPos.x, CellState.Empty);
+                }
+            }
+
+            _autoPlacedDots.Remove(crownPos);
+        }
 
         // ── Private: undo ─────────────────────────────────────────────────────────
 

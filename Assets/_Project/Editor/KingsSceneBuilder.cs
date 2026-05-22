@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.Events;
 using UnityEditor.SceneManagement;
@@ -32,6 +33,7 @@ namespace BrainBattle.Editor
             EnsureEventSystem();
 
             CreateGridContainer(r);
+            CreateTimerBar(r);
             CreateTutorialOverlay(r);
             CreateTipsPanel(r);
             CreateRestartConfirmPanel(r);
@@ -46,7 +48,7 @@ namespace BrainBattle.Editor
             EditorSceneManager.SaveOpenScenes();
 
             Selection.activeGameObject = r.Canvas;
-            Debug.Log("[KingsSceneBuilder] Kings scene built and saved. Assign Crown/Dot sprites on GridContainer → KingsGridRenderer, then populate LevelLoader._allLevels.");
+            Debug.Log("[KingsSceneBuilder] Kings scene built and saved. All references, sprites, and level data auto-assigned — no manual steps required.");
         }
 
         // ── Guards ─────────────────────────────────────────────────────────────────
@@ -148,12 +150,13 @@ namespace BrainBattle.Editor
             r.GridContainer = MakeUIGO("GridContainer", r.Canvas.transform);
             r.GridContainer.AddComponent<KingsGridRenderer>();
 
-            var rt              = r.GridContainer.GetComponent<RectTransform>();
-            rt.anchorMin        = new Vector2(0.5f, 0.5f);
-            rt.anchorMax        = new Vector2(0.5f, 0.5f);
-            rt.pivot            = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta        = new Vector2(900f, 900f);
+            // Stretch to fill the canvas between the top TimerBar and the bottom HUD.
+            var rt       = r.GridContainer.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.pivot     = new Vector2(0.5f, 0.5f);
+            rt.offsetMin = new Vector2(0f,  80f); // bottom inset = HUD height
+            rt.offsetMax = new Vector2(0f, -60f); // top    inset = TimerBar height
         }
 
         static void CreateTutorialOverlay(Refs r)
@@ -234,6 +237,9 @@ namespace BrainBattle.Editor
             r.VictoryContent = MakeUIGO("VictoryContent", r.VictoryPanelGO.transform);
             Anchor(r.VictoryContent, 0.10f, 0.22f, 0.90f, 0.78f);
             r.VictoryContent.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.20f, 1f);
+            // Start hidden — VictoryPanel.Awake() also hides it, but setting it
+            // inactive here means the scene file itself is correct even if Awake NPEs.
+            r.VictoryContent.SetActive(false);
 
             var content = r.VictoryContent.transform;
 
@@ -261,41 +267,68 @@ namespace BrainBattle.Editor
             Anchor(r.VPMainMenuButton, 0.24f, 0.26f, 0.76f, 0.40f);
         }
 
-        static void CreateHUD(Refs r)
+        static void CreateTimerBar(Refs r)
         {
-            r.HudGO = MakeUIGO("HUD", r.Canvas.transform);
-            var rt              = r.HudGO.GetComponent<RectTransform>();
+            r.TimerBarGO = MakeUIGO("TimerBar", r.Canvas.transform);
+            var rt              = r.TimerBarGO.GetComponent<RectTransform>();
             rt.anchorMin        = new Vector2(0f, 1f);
             rt.anchorMax        = new Vector2(1f, 1f);
             rt.pivot            = new Vector2(0.5f, 1f);
             rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta        = new Vector2(0f, 120f);
+            rt.sizeDelta        = new Vector2(0f, 60f);
+            r.TimerBarGO.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.16f, 0.95f);
+
+            r.HudTimerText           = MakeTMP("TimerText", r.TimerBarGO.transform, "00:00");
+            r.HudTimerText.alignment = TextAlignmentOptions.Center;
+            r.HudTimerText.fontSize  = 52f;
+            Stretch(r.HudTimerText.gameObject);
+        }
+
+        static void CreateHUD(Refs r)
+        {
+            r.HudGO = MakeUIGO("HUD", r.Canvas.transform);
+            var rt              = r.HudGO.GetComponent<RectTransform>();
+            rt.anchorMin        = new Vector2(0f, 0f);
+            rt.anchorMax        = new Vector2(1f, 0f);
+            rt.pivot            = new Vector2(0.5f, 0f);
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta        = new Vector2(0f, 80f);
+            // Dark background so HUD text and buttons are readable over any grid colour.
+            r.HudGO.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.16f, 0.95f);
 
             var hud = r.HudGO.transform;
 
-            r.UndoButtonGO = MakeHudButton("UndoButton",    hud, "Undo",    0.02f, 0.17f);
+            // ── Bottom HUD: Undo | Restart | MoveCount | Tips ──────────────────────
+            // Timer is in the TimerBar at the top — not in this strip.
+
+            r.UndoButtonGO = MakeFixedHudButton("UndoButton",    hud, "Undo",    anchorLeft: true,  offsetX: 10f);
             r.UndoButtonGO.AddComponent<UndoButton>();
 
-            r.HudRestartGO = MakeHudButton("RestartButton", hud, "Restart", 0.20f, 0.38f);
+            r.HudRestartGO = MakeFixedHudButton("RestartButton", hud, "Restart", anchorLeft: true,  offsetX: 180f);
             r.HudRestartGO.AddComponent<RestartButton>();
 
-            r.HudTimerText           = MakeTMP("TimerText", hud, "00:00");
-            r.HudTimerText.alignment = TextAlignmentOptions.Center;
-            Anchor(r.HudTimerText, 0.39f, 0.08f, 0.61f, 0.92f);
-
-            r.HudMoveText           = MakeTMP("MoveCountText", hud, "0");
+            // Move count sits in the centre of the HUD strip.
+            r.HudMoveText           = MakeTMP("MoveCountText", hud, "0 moves");
             r.HudMoveText.alignment = TextAlignmentOptions.Center;
-            Anchor(r.HudMoveText, 0.63f, 0.08f, 0.79f, 0.92f);
+            Anchor(r.HudMoveText, 0.38f, 0.08f, 0.62f, 0.92f);
 
-            r.TipsButtonGO = MakeHudButton("TipsButton", hud, "Tips", 0.81f, 0.98f);
+            r.TipsButtonGO = MakeFixedHudButton("TipsButton",    hud, "Tips",    anchorLeft: false, offsetX: 10f);
             r.TipsButtonGO.AddComponent<TipsButton>();
         }
 
-        // Creates a Button+Label inside the HUD strip at the given horizontal anchor range.
-        static GameObject MakeHudButton(string name, Transform parent, string label, float anchorL, float anchorR)
+        // Creates a 160×80 Button pinned to the left or right edge of the HUD strip.
+        // offsetX is the gap between the edge and the button's near side.
+        static GameObject MakeFixedHudButton(string name, Transform parent, string label, bool anchorLeft, float offsetX)
         {
             var btn = MakeButton(name, parent, label);
-            Anchor(btn, anchorL, 0.08f, anchorR, 0.92f);
+            var rt  = btn.GetComponent<RectTransform>();
+
+            float ax            = anchorLeft ? 0f : 1f;
+            rt.anchorMin        = new Vector2(ax, 0.5f);
+            rt.anchorMax        = new Vector2(ax, 0.5f);
+            rt.pivot            = new Vector2(anchorLeft ? 0f : 1f, 0.5f);
+            rt.sizeDelta        = new Vector2(160f, 80f);
+            rt.anchoredPosition = new Vector2(anchorLeft ? offsetX : -offsetX, 0f);
             return btn.gameObject;
         }
 
@@ -313,6 +346,9 @@ namespace BrainBattle.Editor
             var restComp  = r.HudRestartGO.GetComponent<RestartButton>();
             var tipsComp  = r.TipsButtonGO.GetComponent<TipsButton>();
 
+            // KingsGridRenderer — assign sprites automatically.
+            AssignGridRendererSprites(renderer);
+
             // KingsGameManager
             Set(mgr, "_gridRenderer",       renderer);
             Set(mgr, "_tutorialController", tc);
@@ -328,6 +364,9 @@ namespace BrainBattle.Editor
             // KingsSceneBootstrap
             Set(bootstrap, "_levelLoader", loader);
             Set(bootstrap, "_gameManager", mgr);
+
+            // LevelLoader — auto-find and assign all LevelData assets in the project.
+            PopulateLevelLoader(loader);
 
             // UndoButton
             Set(undoComp, "_gameManager", mgr);
@@ -379,13 +418,24 @@ namespace BrainBattle.Editor
         static Button MakeButton(string name, Transform parent, string label)
         {
             var go  = MakeUIGO(name, parent);
-            go.AddComponent<Image>();
+            var img = go.AddComponent<Image>();
+            img.color = BtnBg;
             var btn = go.AddComponent<Button>();
+
+            // Tint the button states so pressed/highlighted are visible.
+            var colors               = btn.colors;
+            colors.normalColor       = Color.white;
+            colors.highlightedColor  = new Color(0.85f, 0.85f, 1.00f, 1f);
+            colors.pressedColor      = new Color(0.65f, 0.65f, 0.90f, 1f);
+            colors.disabledColor     = new Color(1f, 1f, 1f, 0.40f);
+            btn.colors               = colors;
 
             var labelGo  = MakeUIGO("Label", go.transform);
             var tmp      = labelGo.AddComponent<TextMeshProUGUI>();
             tmp.text      = label;
             tmp.alignment = TextAlignmentOptions.Center;
+            tmp.color     = Color.white;
+            tmp.fontSize  = 36f;
             Stretch(labelGo);
 
             return btn;
@@ -395,9 +445,13 @@ namespace BrainBattle.Editor
         {
             var go  = MakeUIGO(name, parent);
             var tmp = go.AddComponent<TextMeshProUGUI>();
-            tmp.text = text;
+            tmp.text  = text;
+            tmp.color = Color.white;
             return tmp;
         }
+
+        // Shared palette — change once here to restyle all buttons.
+        static readonly Color BtnBg = new Color(0.18f, 0.22f, 0.45f, 1f); // dark indigo
 
         // Anchors a RectTransform using normalized parent coordinates; zeros all offsets.
         static void Anchor(RectTransform rt, float minX, float minY, float maxX, float maxY)
@@ -425,6 +479,52 @@ namespace BrainBattle.Editor
             rt.offsetMax        = Vector2.zero;
             rt.anchoredPosition = Vector2.zero;
             rt.sizeDelta        = Vector2.zero;
+        }
+
+        // Loads DotSprite and CrownSprite from the project's Resources folder and assigns
+        // them to KingsGridRenderer._dotSprite / _crownSprite via SerializedObject.
+        static void AssignGridRendererSprites(KingsGridRenderer renderer)
+        {
+            const string DotPath   = "Assets/_Project/Resources/Sprites/DotSprite.png";
+            const string CrownPath = "Assets/_Project/Resources/Sprites/CrownSprite.png";
+
+            var dotSprite   = AssetDatabase.LoadAssetAtPath<Sprite>(DotPath);
+            var crownSprite = AssetDatabase.LoadAssetAtPath<Sprite>(CrownPath);
+
+            if (dotSprite   == null) Debug.LogWarning($"[KingsSceneBuilder] DotSprite not found at {DotPath}");
+            if (crownSprite == null) Debug.LogWarning($"[KingsSceneBuilder] CrownSprite not found at {CrownPath}");
+
+            var so = new SerializedObject(renderer);
+            so.FindProperty("_dotSprite").objectReferenceValue   = dotSprite;
+            so.FindProperty("_crownSprite").objectReferenceValue = crownSprite;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            Debug.Log($"[KingsSceneBuilder] Sprites assigned — dot={(dotSprite != null ? dotSprite.name : "MISSING")}, crown={(crownSprite != null ? crownSprite.name : "MISSING")}");
+        }
+
+        // Finds every LevelData asset in the project and assigns them (sorted by LevelNumber)
+        // to LevelLoader._allLevels via SerializedObject so it survives domain reload.
+        static void PopulateLevelLoader(LevelLoader loader)
+        {
+            var guids  = AssetDatabase.FindAssets("t:LevelData",
+                             new[] { "Assets/_Project/ScriptableObjects/Kings/Levels" });
+            var levels = new List<LevelData>(guids.Length);
+            foreach (var guid in guids)
+            {
+                var asset = AssetDatabase.LoadAssetAtPath<LevelData>(
+                                AssetDatabase.GUIDToAssetPath(guid));
+                if (asset != null) levels.Add(asset);
+            }
+            levels.Sort((a, b) => a.LevelNumber.CompareTo(b.LevelNumber));
+
+            var so   = new SerializedObject(loader);
+            var prop = so.FindProperty("_allLevels");
+            prop.arraySize = levels.Count;
+            for (int i = 0; i < levels.Count; i++)
+                prop.GetArrayElementAtIndex(i).objectReferenceValue = levels[i];
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            Debug.Log($"[KingsSceneBuilder] LevelLoader._allLevels populated with {levels.Count} level(s).");
         }
 
         // Sets a [SerializeField] via SerializedObject so the assignment is serialized,
@@ -481,12 +581,15 @@ namespace BrainBattle.Editor
             public Button          VPRestartButton;
             public Button          VPMainMenuButton;
 
-            // Canvas → HUD
+            // Canvas → TimerBar (top)
+            public GameObject      TimerBarGO;
+            public TextMeshProUGUI HudTimerText;
+
+            // Canvas → HUD (bottom)
             public GameObject      HudGO;
             public GameObject      UndoButtonGO;
             public GameObject      HudRestartGO;
             public GameObject      TipsButtonGO;
-            public TextMeshProUGUI HudTimerText;
             public TextMeshProUGUI HudMoveText;
         }
     }

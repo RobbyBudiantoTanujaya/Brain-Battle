@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using BrainBattle.Core.Models;
 using BrainBattle.Kings;
@@ -11,10 +12,25 @@ namespace BrainBattle.Games.Kings.Logic
 
         public int CurrentLevelNumber { get; private set; }
 
-        private void Awake() => LoadLevel(1);
+        private void Start() => StartCoroutine(BootDeferred());
+
+        // Wait one frame so the Canvas CanvasScaler has run and all RectTransforms
+        // have their correct world-space sizes before RenderGrid reads them.
+        private IEnumerator BootDeferred()
+        {
+            yield return null;
+            Debug.Log("[KingsSceneBootstrap] BootDeferred — calling LoadLevel(1)");
+            LoadLevel(1);
+        }
 
         public void LoadLevel(int levelNumber)
         {
+            if (_levelLoader == null || _gameManager == null)
+            {
+                Debug.LogError("[KingsSceneBootstrap] LevelLoader or KingsGameManager reference is null. Check SerializeField wiring.");
+                return;
+            }
+
             CurrentLevelNumber = levelNumber;
             LevelData level    = _levelLoader.GetLevel(levelNumber);
             if (level == null)
