@@ -129,6 +129,7 @@ namespace BrainBattle.Kings.Editor
                     continue;
                 }
 
+                replacement.name = ld.name;
                 EditorUtility.CopySerialized(replacement, ld);
                 EditorUtility.SetDirty(ld);
                 UnityEngine.Object.DestroyImmediate(replacement);
@@ -339,6 +340,7 @@ namespace BrainBattle.Kings.Editor
             LevelData existing = AssetDatabase.LoadAssetAtPath<LevelData>(assetPath);
             if (existing != null)
             {
+                levelData.name = existing.name;
                 EditorUtility.CopySerialized(levelData, existing);
                 EditorUtility.SetDirty(existing);
                 UnityEngine.Object.DestroyImmediate(levelData);
