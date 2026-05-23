@@ -50,6 +50,17 @@
   - [x] Old placeholder sprites deleted (DotSprite.png, CrownSprite.png)
   - [x] SampleScene KingsGridRenderer re-wired to new dot/crown sprites
   - [x] LevelSelectButton prefab pre-assigned with all 4 level-state sprites
+- [x] BrainBattleDesignSystem.cs — static DesignSystem class with all color/type/spacing/size tokens
+  - [x] KingsGridRenderer: DotSizeRatio, CrownSizeRatio, GridPadding, BorderCellThickness, BorderRegionThickness
+  - [x] LevelSelectController: Primary, Surface, TextPrimary, TextSecondary tokens replace all inline colors
+  - [x] LevelSelectButton: Primary, Background replace fallback color literals
+  - [x] KingsSceneBuilder: Primary, Background replace NavyBg/PinkAccent locals; HUDHeight, TimerBarHeight, Overlay, BorderRegion replace inline sizes/colors
+- [x] Fix: RestartButton, TipsButton, VictoryPanel _gameManager wired in SampleScene (was null → NPE on click)
+- [x] Fix: VictoryPanel _sceneBootstrap wired in SampleScene
+- [x] Fix: Grid border visibility — BuildCells reads border widths from DesignSystem at runtime (BorderRegionThickness=5px, BorderCellThickness=3px), no longer using stale serialized values
+- [x] Bug prevention — null guards with informative error messages in TipsButton/RestartButton/VictoryPanel Awake()
+- [x] Bug prevention — KingsSceneValidator editor tool (BrainBattle/Validate Kings Scene): checks all SerializeField wiring, reports errors before play mode
+- [x] Bug prevention — CLAUDE.md updated with scene wiring rules, DesignSystem runtime-read rule, when to re-run scene builder
 - [ ] Polish & internal build
 
 ## Milestone 2: Level Generation + Progression

@@ -1915,7 +1915,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7eb0c72b694b65b4dbb17f3fdb3b8987, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _gameManager: {fileID: 0}
+  _gameManager: {fileID: 1426370173}
   _button: {fileID: 642618125}
   _tipsPanel: {fileID: 1589943192}
   _tipsText: {fileID: 349933515}
@@ -2191,7 +2191,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a899103c2543654fb82fa0bafe29a41, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _gameManager: {fileID: 0}
+  _gameManager: {fileID: 1426370173}
   _button: {fileID: 661539643}
   _confirmPanel: {fileID: 1569463318}
 --- !u!114 &661539643
@@ -2422,6 +2422,7 @@ GameObject:
   - component: {fileID: 761249615}
   - component: {fileID: 761249617}
   - component: {fileID: 761249616}
+  - component: {fileID: 761249618}
   m_Layer: 0
   m_Name: TutorialOverlay
   m_TagString: Untagged
@@ -2490,6 +2491,23 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 761249614}
   m_CullTransparentMesh: 1
+--- !u!114 &761249618
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 761249614}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7edf8d928cf65064897dfa8fd93b12e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _overlayPanel: {fileID: 761249614}
+  _stepText: {fileID: 479303015}
+  _stepCounter: {fileID: 1178554903}
+  _nextButton: {fileID: 122905403}
+  _skipButton: {fileID: 1404273279}
 --- !u!1 &822683779
 GameObject:
   m_ObjectHideFlags: 0
@@ -4310,6 +4328,85 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!1 &1426370171
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1426370175}
+  - component: {fileID: 1426370174}
+  - component: {fileID: 1426370173}
+  - component: {fileID: 1426370172}
+  m_Layer: 0
+  m_Name: GameManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1426370172
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1426370171}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f1965e8cbe55ab419048a8bb8f58e0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _levelLoader: {fileID: 1426370174}
+  _gameManager: {fileID: 1426370173}
+--- !u!114 &1426370173
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1426370171}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 78df5e0a29a18ab469b571ff338e2662, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _gridRenderer: {fileID: 1265774788}
+  _currentGrid:
+    _size: 0
+    _serializedCells: []
+    _regions: []
+  _tutorialController: {fileID: 761249618}
+--- !u!114 &1426370174
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1426370171}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f97555c4fab4bb45b9c9d964e218116, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _allLevels: []
+--- !u!4 &1426370175
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1426370171}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1431196847
 GameObject:
   m_ObjectHideFlags: 0
@@ -5619,8 +5716,8 @@ MonoBehaviour:
   _nextLevelButton: {fileID: 2097330313}
   _restartButton: {fileID: 232496085}
   _mainMenuButton: {fileID: 1305136949}
-  _gameManager: {fileID: 0}
-  _sceneBootstrap: {fileID: 0}
+  _gameManager: {fileID: 1426370173}
+  _sceneBootstrap: {fileID: 1426370172}
   _backgroundImage: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
@@ -5630,3 +5727,4 @@ SceneRoots:
   - {fileID: 619394802}
   - {fileID: 1221106927}
   - {fileID: 31879037}
+  - {fileID: 1426370175}

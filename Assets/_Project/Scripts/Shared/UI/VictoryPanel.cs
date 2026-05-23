@@ -33,11 +33,12 @@ namespace BrainBattle.Shared
 
         private void Awake()
         {
-            if (_panel == null)
-            {
-                Debug.LogError("[VictoryPanel] _panel (VictoryContent) is not assigned. Check SerializeField wiring in the Inspector.");
-                return;
-            }
+            if (_panel          == null) Debug.LogError("[VictoryPanel] _panel (VictoryContent) not wired. Run BrainBattle → Build Kings Scene.", this);
+            if (_gameManager    == null) Debug.LogError("[VictoryPanel] _gameManager not wired. Run BrainBattle → Build Kings Scene.", this);
+            if (_sceneBootstrap == null) Debug.LogError("[VictoryPanel] _sceneBootstrap not wired. Run BrainBattle → Build Kings Scene.", this);
+
+            if (_panel == null) return;
+
             _panel.SetActive(false);
             _panelRt = _panel.GetComponent<RectTransform>();
             _nextLevelButton.onClick.AddListener(OnNextLevel);

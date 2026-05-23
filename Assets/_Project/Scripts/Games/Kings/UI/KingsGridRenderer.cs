@@ -5,23 +5,20 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using BrainBattle.Core.Models;
+using BrainBattle.Shared.UI;
 
 namespace BrainBattle.Games.Kings.UI
 {
     [RequireComponent(typeof(RectTransform))]
     public sealed class KingsGridRenderer : MonoBehaviour
     {
-        private const float IconScale      = 0.25f; // dot: 25 % of cell (small marker circle)
-        private const float CrownIconScale = 0.65f; // crown: 65 % of cell square; preserveAspect gives
-                                                     // displayed height ≈ 0.65*(224/347)*cell ≈ 0.42*cell
-
         [SerializeField] private Sprite _dotSprite;
         [SerializeField] private Sprite _crownSprite;
-        [SerializeField] private float  _padding          = 16f;
-        [SerializeField] private Color  _thinBorderColor  = new Color(0f, 0f, 0f, 0.20f);
-        [SerializeField] private Color  _thickBorderColor = new Color(0f, 0f, 0f, 0.80f);
-        [SerializeField] private float  _thinBorderWidth  = 1.5f;
-        [SerializeField] private float  _thickBorderWidth = 3f;
+        [SerializeField] private float  _padding          = DesignSystem.GridPadding;
+        [SerializeField] private Color  _thinBorderColor  = new Color(0f, 0f, 0f, 0.20f); // DesignSystem.BorderCell
+        [SerializeField] private Color  _thickBorderColor = new Color(0f, 0f, 0f, 0.80f); // DesignSystem.BorderRegion
+        [SerializeField] private float  _thinBorderWidth  = DesignSystem.BorderCellThickness;
+        [SerializeField] private float  _thickBorderWidth = DesignSystem.BorderRegionThickness;
         [SerializeField] private Color  _conflictColor    = Color.red;
         [SerializeField] private float  _pulseSpeed       = 0.3f;
 
@@ -220,7 +217,7 @@ namespace BrainBattle.Games.Kings.UI
                 regionMap[region.RegionId] = region;
 
             int   size = grid.Size;
-            float bt   = _thickBorderWidth;
+            float bt   = DesignSystem.BorderRegionThickness;
 
             for (int r = 0; r < size; r++)
             {
@@ -257,9 +254,9 @@ namespace BrainBattle.Games.Kings.UI
                     darkImg.raycastTarget = false;
 
                     // Colored foreground — inset to reveal dark behind it.
-                    //   Non-boundary side: 0.5f → 1 px total gap between adjacent same-region cells.
-                    //   Boundary side:     bt/2 → bt px total dark gap between different-region cells.
-                    float thinHalf = _thinBorderWidth * 0.5f;
+                    //   Non-boundary side: thinHalf each → BorderCellThickness total gap (same-region).
+                    //   Boundary side:     bt/2 each → BorderRegionThickness total gap (diff-region).
+                    float thinHalf = DesignSystem.BorderCellThickness * 0.5f;
                     float insetL = boundLeft   ? bt * 0.5f : thinHalf;
                     float insetR = boundRight  ? bt * 0.5f : thinHalf;
                     float insetT = boundTop    ? bt * 0.5f : thinHalf;
@@ -289,7 +286,7 @@ namespace BrainBattle.Games.Kings.UI
                     iconRt.anchorMax        = new Vector2(0.5f, 0.5f);
                     iconRt.pivot            = new Vector2(0.5f, 0.5f);
                     iconRt.anchoredPosition = Vector2.zero;
-                    float iconSize          = _cellSize * IconScale;
+                    float iconSize          = _cellSize * DesignSystem.DotSizeRatio;
                     iconRt.sizeDelta        = new Vector2(iconSize, iconSize);
 
                     var icon            = iconGo.GetComponent<Image>();
@@ -322,7 +319,7 @@ namespace BrainBattle.Games.Kings.UI
                     view.Icon.enabled = _dotSprite != null;
                     if (view.IconRt != null)
                     {
-                        float s = _cellSize * IconScale;
+                        float s = _cellSize * DesignSystem.DotSizeRatio;
                         view.IconRt.sizeDelta = new Vector2(s, s);
                     }
                     break;
@@ -331,7 +328,7 @@ namespace BrainBattle.Games.Kings.UI
                     view.Icon.enabled = _crownSprite != null;
                     if (view.IconRt != null)
                     {
-                        float s = _cellSize * CrownIconScale;
+                        float s = _cellSize * DesignSystem.CrownSizeRatio;
                         view.IconRt.sizeDelta = new Vector2(s, s);
                     }
                     break;

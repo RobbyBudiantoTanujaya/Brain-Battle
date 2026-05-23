@@ -12,8 +12,12 @@ namespace BrainBattle.Shared
 
         private void Awake()
         {
-            _button.onClick.AddListener(OnClick);
-            _confirmPanel.SetActive(false);
+            if (_gameManager   == null) Debug.LogError("[RestartButton] _gameManager not wired. Run BrainBattle → Build Kings Scene.", this);
+            if (_button        == null) Debug.LogError("[RestartButton] _button not wired.", this);
+            if (_confirmPanel  == null) Debug.LogError("[RestartButton] _confirmPanel not wired.", this);
+
+            if (_button       != null) _button.onClick.AddListener(OnClick);
+            if (_confirmPanel != null) _confirmPanel.SetActive(false);
         }
 
         // Wired to the Confirm button inside _confirmPanel via Inspector onClick.

@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using BrainBattle.Shared.UI;
 
 namespace BrainBattle.Shared.UI
 {
@@ -15,8 +16,8 @@ namespace BrainBattle.Shared.UI
     public sealed class LevelSelectButton : MonoBehaviour
     {
         // Fallback solid colours used when sprites are unavailable.
-        private static readonly Color ColAccent = new Color(0.93f, 0.26f, 0.56f, 1f); // pink
-        private static readonly Color ColLocked = new Color(0.12f, 0.12f, 0.18f, 1f); // dark
+        private static readonly Color ColAccent = DesignSystem.Primary;
+        private static readonly Color ColLocked = DesignSystem.Background;
 
         [SerializeField] private Image           _background;   // root Image — always transparent (raycast target)
         [SerializeField] private Image           _spriteImage;  // child Image — fills button, shows state sprite

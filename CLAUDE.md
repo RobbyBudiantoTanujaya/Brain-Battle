@@ -86,3 +86,28 @@ Assets/_Project/
   * Triggering Unity menu items (BrainBattle -> Generate Kings Levels, etc.)
 - Never ask for screenshots of Unity console or hierarchy, read directly via MCP
 - Before any bug fix: run manage_scene to get current state first
+
+## Scene Wiring Rules (MUST FOLLOW)
+
+### Scene builders are the single source of truth
+- KingsSceneBuilder  → owns SampleScene wiring
+- LevelSelectSceneBuilder → owns LevelSelect wiring
+- NEVER fix SerializeField wiring by hand via MCP alone — run the scene builder tool instead
+- If the scene builder is missing a wiring step, ADD it to the builder, THEN re-run the builder
+
+### When to re-run BrainBattle → Build Kings Scene
+- Any time a new component or SerializeField is added to a HUD/game script
+- Any time a scene wiring bug is found (missing _gameManager, _gridRenderer, etc.)
+- Any time SampleScene is rebuilt or substantially changed
+- Before every internal build / QA session
+
+### Validate before testing
+- Run BrainBattle → Validate Kings Scene after any scene change
+- All errors must be 0 before entering play mode
+- Warnings are OK (e.g. dot/crown sprites — loaded at runtime)
+
+### DesignSystem values must be used at runtime, not baked into scenes
+- For rendering constants (border widths, sizes), read from DesignSystem directly in code — do NOT rely on [SerializeField] defaults
+- If a visual value comes from DesignSystem, the code must call DesignSystem.X at runtime (not store it in a serialized field that can become stale)
+- Example: `float bt = DesignSystem.BorderRegionThickness;` in BuildCells() — correct
+- Example: `[SerializeField] float _thickBorderWidth = DesignSystem.X;` — wrong, stale after scene save

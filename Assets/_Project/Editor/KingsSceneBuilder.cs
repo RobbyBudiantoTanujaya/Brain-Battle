@@ -178,8 +178,8 @@ namespace BrainBattle.Editor
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
             rt.pivot     = new Vector2(0.5f, 0.5f);
-            rt.offsetMin = new Vector2(0f,  72f); // bottom inset = HUD height
-            rt.offsetMax = new Vector2(0f, -48f); // top    inset = TimerBar height
+            rt.offsetMin = new Vector2(0f,  DesignSystem.HUDHeight);       // bottom inset = HUD height
+            rt.offsetMax = new Vector2(0f, -DesignSystem.TimerBarHeight);  // top    inset = TimerBar height
         }
 
         static void CreateTutorialOverlay(Refs r)
@@ -188,7 +188,7 @@ namespace BrainBattle.Editor
             // TutorialController (on GameManager) calls _overlayPanel.SetActive(false) in Awake.
             r.TutorialOverlayGO = MakeUIGO("TutorialOverlay", r.Canvas.transform);
             Stretch(r.TutorialOverlayGO);
-            r.TutorialOverlayGO.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.80f);
+            r.TutorialOverlayGO.AddComponent<Image>().color = DesignSystem.BorderRegion;
 
             var root = r.TutorialOverlayGO.transform;
 
@@ -260,7 +260,7 @@ namespace BrainBattle.Editor
             // Dark semi-transparent overlay behind the card.
             var overlay = MakeUIGO("Overlay", r.VictoryPanelGO.transform);
             Stretch(overlay);
-            overlay.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.70f);
+            overlay.AddComponent<Image>().color = DesignSystem.Overlay;
 
             // Card — 85 % wide, centred vertically.
             r.VictoryContent = MakeUIGO("VictoryContent", r.VictoryPanelGO.transform);
@@ -325,7 +325,7 @@ namespace BrainBattle.Editor
             rt.anchorMax        = new Vector2(1f, 1f);
             rt.pivot            = new Vector2(0.5f, 1f);
             rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta        = new Vector2(0f, 48f); // dark navy top bar
+            rt.sizeDelta        = new Vector2(0f, DesignSystem.TimerBarHeight);
             r.TimerBarGO.AddComponent<Image>().color = NavyBg;
 
             r.HudTimerText           = MakeTMP("TimerText", r.TimerBarGO.transform, "00:00");
@@ -343,7 +343,7 @@ namespace BrainBattle.Editor
             rt.anchorMax        = new Vector2(1f, 0f);
             rt.pivot            = new Vector2(0.5f, 0f);
             rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta        = new Vector2(0f, 72f); // dark navy bottom bar
+            rt.sizeDelta        = new Vector2(0f, DesignSystem.HUDHeight);
             r.HudGO.AddComponent<Image>().color = NavyBg;
 
             var hud = r.HudGO.transform;
@@ -507,10 +507,10 @@ namespace BrainBattle.Editor
             return tmp;
         }
 
-        // Shared palette — change once here to restyle all buttons/panels.
-        static readonly Color BtnBg   = new Color(0.18f, 0.22f, 0.45f, 1f); // dark indigo
-        static readonly Color NavyBg  = new Color(0.102f, 0.102f, 0.180f, 0.97f); // #1a1a2e dark navy
-        static readonly Color PinkAccent = new Color(1.00f, 0.176f, 0.471f, 1f);  // #ff2d78
+        // Shared palette — sourced from DesignSystem; BtnBg has no matching token.
+        static readonly Color BtnBg      = new Color(0.18f, 0.22f, 0.45f, 1f); // dark indigo (no DesignSystem token)
+        static readonly Color NavyBg     = DesignSystem.Background;
+        static readonly Color PinkAccent = DesignSystem.Primary;
 
         // Anchors a RectTransform using normalized parent coordinates; zeros all offsets.
         static void Anchor(RectTransform rt, float minX, float minY, float maxX, float maxY)

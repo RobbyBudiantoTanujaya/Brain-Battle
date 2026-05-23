@@ -39,9 +39,8 @@ namespace BrainBattle.Editor
             // Build prefab first (needs no open scene).
             var prefabGO = BuildLevelButtonPrefab();
 
-            // Create a new empty scene, build the UI, save.
-            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
-            EditorSceneManager.SetActiveScene(scene);
+            // NewSceneMode.Single closes ALL open scenes atomically (avoids "can't unload last scene" error).
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             var r = new Refs();
             r.Prefab  = prefabGO;
@@ -56,9 +55,6 @@ namespace BrainBattle.Editor
 
             EditorSceneManager.SaveScene(scene, ScenePath);
             AssetDatabase.Refresh();
-
-            // Close the temp scene – the saved asset is what we need.
-            EditorSceneManager.CloseScene(scene, true);
 
             Debug.Log("[LevelSelectSceneBuilder] Scene saved → " + ScenePath);
         }

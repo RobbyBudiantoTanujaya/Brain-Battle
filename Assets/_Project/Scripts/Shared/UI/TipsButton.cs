@@ -22,9 +22,15 @@ namespace BrainBattle.Shared
 
         private void Awake()
         {
-            _button.onClick.AddListener(OnClick);
-            _closeButton.onClick.AddListener(ClosePanel);
-            _tipsPanel.SetActive(false);
+            if (_gameManager  == null) Debug.LogError("[TipsButton] _gameManager not wired. Run BrainBattle → Build Kings Scene.", this);
+            if (_button       == null) Debug.LogError("[TipsButton] _button not wired.", this);
+            if (_tipsPanel    == null) Debug.LogError("[TipsButton] _tipsPanel not wired.", this);
+            if (_tipsText     == null) Debug.LogError("[TipsButton] _tipsText not wired.", this);
+            if (_closeButton  == null) Debug.LogError("[TipsButton] _closeButton not wired.", this);
+
+            if (_button      != null) _button.onClick.AddListener(OnClick);
+            if (_closeButton != null) _closeButton.onClick.AddListener(ClosePanel);
+            if (_tipsPanel   != null) _tipsPanel.SetActive(false);
         }
 
         // Wired to the close button inside _tipsPanel.

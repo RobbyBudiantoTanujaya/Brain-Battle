@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
+using BrainBattle.Shared.UI;
 
 namespace BrainBattle.Shared.UI
 {
@@ -26,15 +27,11 @@ namespace BrainBattle.Shared.UI
             new[] { 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35 },             // Impossible – 10×10
         };
 
-        // #ff2d78 – pink accent
-        private static readonly Color ColTabActive    = new Color(1.00f, 0.176f, 0.471f, 1f);
-        // #2a2a3e – dark inactive
-        private static readonly Color ColTabInactive  = new Color(0.165f, 0.165f, 0.243f, 1f);
-        // #ff2d78 – progress fill (same pink)
-        private static readonly Color ColProgressFill = new Color(1.00f, 0.176f, 0.471f, 1f);
-        // Tab label colours
-        private static readonly Color ColTabTxtActive   = Color.white;
-        private static readonly Color ColTabTxtInactive = new Color(0.533f, 0.533f, 0.533f, 1f); // #888888
+        private static readonly Color ColTabActive    = DesignSystem.Primary;
+        private static readonly Color ColTabInactive  = DesignSystem.Surface;
+        private static readonly Color ColProgressFill = DesignSystem.Primary;
+        private static readonly Color ColTabTxtActive   = DesignSystem.TextPrimary;
+        private static readonly Color ColTabTxtInactive = DesignSystem.TextSecondary;
 
         // ── Inspector ─────────────────────────────────────────────────────────────
 
@@ -59,13 +56,35 @@ namespace BrainBattle.Shared.UI
 
         private void Awake()
         {
-            for (int i = 0; i < _tabButtons.Length; i++)
+            // Guard: if wiring was lost (scene saved over an open scene), find buttons by name.
+            if (_tabButtons == null || _tabButtons.Length == 0 || _tabButtons[0] == null)
+                TryFindTabButtonsFallback();
+
+            if (_tabButtons != null)
             {
-                int idx = i; // capture for lambda
-                _tabButtons[i].onClick.AddListener(() => SelectTab(idx));
+                for (int i = 0; i < _tabButtons.Length; i++)
+                {
+                    if (_tabButtons[i] == null) continue;
+                    int idx = i; // capture for lambda
+                    _tabButtons[i].onClick.AddListener(() => SelectTab(idx));
+                }
             }
             if (_playButton != null)
                 _playButton.onClick.AddListener(OnPlay);
+        }
+
+        // Fallback: locate tab buttons by name inside the Canvas when SerializeField wiring is lost.
+        private void TryFindTabButtonsFallback()
+        {
+            string[] names = { "BeginnerTab", "ExpertTab", "ImpossibleTab" };
+            _tabButtons    = new Button[3];
+            for (int i = 0; i < names.Length; i++)
+            {
+                var go = GameObject.Find(names[i]);
+                if (go != null) _tabButtons[i] = go.GetComponent<Button>();
+            }
+            Debug.LogWarning("[LevelSelectController] _tabButtons were null — resolved via fallback. " +
+                             "Re-run BrainBattle/Build Level Select Scene to fix wiring permanently.");
         }
 
         private void Start() => SelectTab(0);
@@ -79,6 +98,7 @@ namespace BrainBattle.Shared.UI
             // Highlight active tab, dim others — background colour + label colour/weight.
             for (int i = 0; i < _tabButtons.Length; i++)
             {
+                if (_tabButtons[i] == null) continue;
                 bool active = (i == index);
                 var img = _tabButtons[i].GetComponent<Image>();
                 if (img != null) img.color = active ? ColTabActive : ColTabInactive;
