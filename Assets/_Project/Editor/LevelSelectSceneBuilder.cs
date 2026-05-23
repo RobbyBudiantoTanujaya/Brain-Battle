@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using TMPro;
+using BrainBattle.Kings;
 using BrainBattle.Shared.UI;
 
 namespace BrainBattle.Editor
@@ -416,6 +417,22 @@ namespace BrainBattle.Editor
 
             // Play button
             so.FindProperty("_playButton").objectReferenceValue = r.PlayButton;
+
+            // All level assets — load from disk and assign so the controller has data at runtime
+            const string levelsPath = "Assets/_Project/ScriptableObjects/Kings/Levels";
+            var levelGuids = AssetDatabase.FindAssets("t:LevelData", new[] { levelsPath });
+            var levelAssets = new List<LevelData>(levelGuids.Length);
+            foreach (string guid in levelGuids)
+            {
+                var asset = AssetDatabase.LoadAssetAtPath<LevelData>(AssetDatabase.GUIDToAssetPath(guid));
+                if (asset != null) levelAssets.Add(asset);
+            }
+            levelAssets.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+
+            var allLevelsProp = so.FindProperty("_allLevels");
+            allLevelsProp.arraySize = levelAssets.Count;
+            for (int i = 0; i < levelAssets.Count; i++)
+                allLevelsProp.GetArrayElementAtIndex(i).objectReferenceValue = levelAssets[i];
 
             so.ApplyModifiedPropertiesWithoutUndo();
         }

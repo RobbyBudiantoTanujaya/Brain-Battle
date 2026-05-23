@@ -3,42 +3,34 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
+using BrainBattle.Kings;
 using BrainBattle.Shared.UI;
 
 namespace BrainBattle.Shared.UI
 {
-    /// <summary>
-    /// Drives the Level Select screen: tab switching, progress display, level grid, and Play button.
-    /// The scene is created by BrainBattle/Build Level Select Scene editor tool.
-    /// </summary>
     public sealed class LevelSelectController : MonoBehaviour
     {
-        // ── Constants ─────────────────────────────────────────────────────────────
-
         private const string GameSceneName   = "SampleScene";
         private const string PendingLevelKey = "Kings_PendingLevel";
         private const string StarsKeyFmt     = "Kings_Level_{0}_Stars";
 
-        /// <summary>Level numbers that belong to each difficulty tab (Beginner / Expert / Impossible).</summary>
-        private static readonly int[][] DiffPools =
-        {
-            new[] { 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12 },         // Beginner   – 4×4, 5×5
-            new[] { 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 },         // Expert     – 6×6, 8×8
-            new[] { 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35 },             // Impossible – 10×10
-        };
+        private static readonly string[] DifficultyNames = { "Beginner", "Expert", "Impossible" };
 
-        private static readonly Color ColTabActive    = DesignSystem.Primary;
-        private static readonly Color ColTabInactive  = DesignSystem.Surface;
-        private static readonly Color ColProgressFill = DesignSystem.Primary;
+        private static readonly Color ColTabActive      = DesignSystem.Primary;
+        private static readonly Color ColTabInactive    = DesignSystem.Surface;
+        private static readonly Color ColProgressFill   = DesignSystem.Primary;
         private static readonly Color ColTabTxtActive   = DesignSystem.TextPrimary;
         private static readonly Color ColTabTxtInactive = DesignSystem.TextSecondary;
 
         // ── Inspector ─────────────────────────────────────────────────────────────
 
+        [Header("Level Data")]
+        [SerializeField] private LevelData[] _allLevels;
+
         [Header("Tabs (length 3)")]
-        [SerializeField] private Button[]          _tabButtons;    // Beginner | Expert | Impossible
-        [SerializeField] private Image[]           _progressFills; // Filled-type Images for progress bars
-        [SerializeField] private TextMeshProUGUI[] _progressTexts; // "X%" labels
+        [SerializeField] private Button[]          _tabButtons;
+        [SerializeField] private Image[]           _progressFills;
+        [SerializeField] private TextMeshProUGUI[] _progressTexts;
 
         [Header("Level Grid")]
         [SerializeField] private Transform  _gridContent;
@@ -50,13 +42,13 @@ namespace BrainBattle.Shared.UI
         // ── State ─────────────────────────────────────────────────────────────────
 
         private int _activeTab;
+        private int[][] _diffPools;
         private readonly List<LevelSelectButton> _buttons = new();
 
         // ── Lifecycle ─────────────────────────────────────────────────────────────
 
         private void Awake()
         {
-            // Guard: if wiring was lost (scene saved over an open scene), find buttons by name.
             if (_tabButtons == null || _tabButtons.Length == 0 || _tabButtons[0] == null)
                 TryFindTabButtonsFallback();
 
@@ -65,7 +57,7 @@ namespace BrainBattle.Shared.UI
                 for (int i = 0; i < _tabButtons.Length; i++)
                 {
                     if (_tabButtons[i] == null) continue;
-                    int idx = i; // capture for lambda
+                    int idx = i;
                     _tabButtons[i].onClick.AddListener(() => SelectTab(idx));
                 }
             }
@@ -73,7 +65,6 @@ namespace BrainBattle.Shared.UI
                 _playButton.onClick.AddListener(OnPlay);
         }
 
-        // Fallback: locate tab buttons by name inside the Canvas when SerializeField wiring is lost.
         private void TryFindTabButtonsFallback()
         {
             string[] names = { "BeginnerTab", "ExpertTab", "ImpossibleTab" };
@@ -87,7 +78,48 @@ namespace BrainBattle.Shared.UI
                              "Re-run BrainBattle/Build Level Select Scene to fix wiring permanently.");
         }
 
-        private void Start() => SelectTab(0);
+        private void Start()
+        {
+            BuildDiffPools();
+            SelectTab(0);
+        }
+
+        // ── Pool builder ──────────────────────────────────────────────────────────
+
+        // Groups _allLevels by Difficulty, sorted by LevelNumber ascending.
+        // Called once on Start — no rebuild needed at runtime.
+        private void BuildDiffPools()
+        {
+            var pools = new List<int>[DifficultyNames.Length];
+            for (int i = 0; i < pools.Length; i++) pools[i] = new List<int>();
+
+            if (_allLevels != null && _allLevels.Length > 0)
+            {
+                var sorted = (LevelData[])_allLevels.Clone();
+                System.Array.Sort(sorted, (a, b) => a.LevelNumber.CompareTo(b.LevelNumber));
+
+                foreach (var level in sorted)
+                {
+                    if (level == null) continue;
+                    for (int d = 0; d < DifficultyNames.Length; d++)
+                    {
+                        if (level.Difficulty == DifficultyNames[d])
+                        {
+                            pools[d].Add(level.LevelNumber);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            _diffPools = new int[DifficultyNames.Length][];
+            for (int i = 0; i < DifficultyNames.Length; i++)
+                _diffPools[i] = pools[i].ToArray();
+
+            Debug.Log($"[LevelSelectController] Pools built — " +
+                      $"Beginner:{_diffPools[0].Length} Expert:{_diffPools[1].Length} " +
+                      $"Impossible:{_diffPools[2].Length}");
+        }
 
         // ── Tab switching ─────────────────────────────────────────────────────────
 
@@ -95,7 +127,6 @@ namespace BrainBattle.Shared.UI
         {
             _activeTab = index;
 
-            // Highlight active tab, dim others — background colour + label colour/weight.
             for (int i = 0; i < _tabButtons.Length; i++)
             {
                 if (_tabButtons[i] == null) continue;
@@ -106,8 +137,8 @@ namespace BrainBattle.Shared.UI
                 var lbl = _tabButtons[i].GetComponentInChildren<TextMeshProUGUI>();
                 if (lbl != null)
                 {
-                    lbl.color     = active ? ColTabTxtActive : ColTabTxtInactive;
-                    lbl.fontStyle = active ? FontStyles.Bold : FontStyles.Normal;
+                    lbl.color     = active ? ColTabTxtActive   : ColTabTxtInactive;
+                    lbl.fontStyle = active ? FontStyles.Bold   : FontStyles.Normal;
                 }
             }
 
@@ -119,21 +150,22 @@ namespace BrainBattle.Shared.UI
 
         private void RefreshProgress()
         {
-            for (int d = 0; d < DiffPools.Length; d++)
+            if (_diffPools == null) return;
+            for (int d = 0; d < _diffPools.Length; d++)
             {
-                int[] pool = DiffPools[d];
+                int[] pool = _diffPools[d];
                 int   done = 0;
                 foreach (int lvl in pool)
                     if (Stars(lvl) > 0) done++;
 
                 float pct = pool.Length > 0 ? (float)done / pool.Length : 0f;
 
-                if (_progressFills  != null && d < _progressFills.Length  && _progressFills[d]  != null)
+                if (_progressFills != null && d < _progressFills.Length && _progressFills[d] != null)
                 {
                     _progressFills[d].fillAmount = pct;
                     _progressFills[d].color      = ColProgressFill;
                 }
-                if (_progressTexts  != null && d < _progressTexts.Length  && _progressTexts[d]  != null)
+                if (_progressTexts != null && d < _progressTexts.Length && _progressTexts[d] != null)
                     _progressTexts[d].text = $"{Mathf.RoundToInt(pct * 100)}%";
             }
         }
@@ -147,12 +179,13 @@ namespace BrainBattle.Shared.UI
             _buttons.Clear();
 
             if (_gridContent == null || _levelButtonPrefab == null) return;
+            if (_diffPools == null || diffIndex >= _diffPools.Length) return;
 
-            int[] pool = DiffPools[diffIndex];
+            int[] pool = _diffPools[diffIndex];
             for (int i = 0; i < pool.Length; i++)
             {
                 int lvl        = pool[i];
-                int displayNum = i + 1; // show 1-based index within the tab
+                int displayNum = i + 1;
 
                 var go  = Instantiate(_levelButtonPrefab, _gridContent);
                 var btn = go.GetComponent<LevelSelectButton>();
@@ -166,25 +199,18 @@ namespace BrainBattle.Shared.UI
 
         // ── State helpers ─────────────────────────────────────────────────────────
 
-        /// <summary>
-        /// Returns the state of a level within its difficulty pool.
-        /// • First level of every pool is always Available (or Completed).
-        /// • Subsequent levels unlock sequentially within the pool only.
-        /// </summary>
         private static LevelState StateFor(int lvl, int[] pool)
         {
             bool isFirstInPool = pool.Length > 0 && pool[0] == lvl;
             if (isFirstInPool)
                 return Stars(lvl) > 0 ? LevelState.Completed : LevelState.Available;
 
-            // Find the previous level inside the same pool.
             int prevInPool = -1;
             for (int i = 1; i < pool.Length; i++)
             {
                 if (pool[i] == lvl) { prevInPool = pool[i - 1]; break; }
             }
 
-            // Locked if the previous level in this pool has no stars yet.
             if (prevInPool < 0 || Stars(prevInPool) == 0) return LevelState.Locked;
             return Stars(lvl) > 0 ? LevelState.Completed : LevelState.Available;
         }
@@ -201,13 +227,10 @@ namespace BrainBattle.Shared.UI
             SceneManager.LoadScene(GameSceneName);
         }
 
-        /// <summary>
-        /// Loads the first available (incomplete) level in the active tab.
-        /// Falls back to the last completed level if all are done.
-        /// </summary>
         private void OnPlay()
         {
-            int[] pool   = DiffPools[_activeTab];
+            if (_diffPools == null || _activeTab >= _diffPools.Length) return;
+            int[] pool   = _diffPools[_activeTab];
             int   target = pool.Length > 0 ? pool[0] : 1;
 
             foreach (int lvl in pool)

@@ -6,6 +6,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using BrainBattle.Core.Generators;
+using BrainBattle.Shared.UI;
 
 namespace BrainBattle.Kings.Editor
 {
@@ -178,24 +179,43 @@ namespace BrainBattle.Kings.Editor
         private static void SyncOpenSceneLevelLoaders()
         {
             LevelData[] orderedLevels = LoadOrderedLevels();
-            var levelLoaders = UnityEngine.Object.FindObjectsByType<LevelLoader>(FindObjectsSortMode.None);
-            if (levelLoaders.Length == 0) return;
+            int synced = 0;
 
+            // Sync LevelLoader (SampleScene)
+            var levelLoaders = UnityEngine.Object.FindObjectsByType<LevelLoader>(FindObjectsSortMode.None);
             foreach (LevelLoader loader in levelLoaders)
             {
-                var so = new SerializedObject(loader);
+                var so   = new SerializedObject(loader);
                 var prop = so.FindProperty("_allLevels");
                 prop.arraySize = orderedLevels.Length;
                 for (int i = 0; i < orderedLevels.Length; i++)
                     prop.GetArrayElementAtIndex(i).objectReferenceValue = orderedLevels[i];
                 so.ApplyModifiedPropertiesWithoutUndo();
-
                 EditorUtility.SetDirty(loader);
                 EditorSceneManager.MarkSceneDirty(loader.gameObject.scene);
+                synced++;
             }
 
-            EditorSceneManager.SaveOpenScenes();
-            UnityEngine.Debug.Log($"[KingsLevelGenerator] Synced {levelLoaders.Length} LevelLoader component(s) with {orderedLevels.Length} ordered level assets.");
+            // Sync LevelSelectController (LevelSelect scene)
+            var controllers = UnityEngine.Object.FindObjectsByType<LevelSelectController>(FindObjectsSortMode.None);
+            foreach (LevelSelectController ctrl in controllers)
+            {
+                var so   = new SerializedObject(ctrl);
+                var prop = so.FindProperty("_allLevels");
+                prop.arraySize = orderedLevels.Length;
+                for (int i = 0; i < orderedLevels.Length; i++)
+                    prop.GetArrayElementAtIndex(i).objectReferenceValue = orderedLevels[i];
+                so.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(ctrl);
+                EditorSceneManager.MarkSceneDirty(ctrl.gameObject.scene);
+                synced++;
+            }
+
+            if (synced > 0)
+            {
+                EditorSceneManager.SaveOpenScenes();
+                UnityEngine.Debug.Log($"[KingsLevelGenerator] Synced {synced} component(s) with {orderedLevels.Length} level assets.");
+            }
         }
 
         private static LevelData[] LoadOrderedLevels()
