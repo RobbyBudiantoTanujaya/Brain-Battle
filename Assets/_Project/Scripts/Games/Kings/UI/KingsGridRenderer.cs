@@ -14,13 +14,9 @@ namespace BrainBattle.Games.Kings.UI
     {
         [SerializeField] private Sprite _dotSprite;
         [SerializeField] private Sprite _crownSprite;
-        [SerializeField] private float  _padding          = DesignSystem.GridPadding;
-        [SerializeField] private Color  _thinBorderColor  = new Color(0f, 0f, 0f, 0.20f); // DesignSystem.BorderCell
-        [SerializeField] private Color  _thickBorderColor = new Color(0f, 0f, 0f, 0.80f); // DesignSystem.BorderRegion
-        [SerializeField] private float  _thinBorderWidth  = DesignSystem.BorderCellThickness;
-        [SerializeField] private float  _thickBorderWidth = DesignSystem.BorderRegionThickness;
-        [SerializeField] private Color  _conflictColor    = Color.red;
-        [SerializeField] private float  _pulseSpeed       = 0.3f;
+        [SerializeField] private float  _padding       = DesignSystem.GridPadding;
+        [SerializeField] private Color  _conflictColor = Color.red;
+        [SerializeField] private float  _pulseSpeed    = 0.3f;
 
         /// <summary>Fired when the user taps (or presses) a cell. Args: (row, col).</summary>
         public event Action<int, int>             OnCellTapped;
@@ -217,8 +213,14 @@ namespace BrainBattle.Games.Kings.UI
                 regionMap[region.RegionId] = region;
 
             int   size = grid.Size;
-            float bt   = DesignSystem.BorderRegionThickness;
+            float bt   = DesignSystem.BorderRegionThickness;   // thick: diff-region
+            float thin = DesignSystem.BorderCellThickness;     // thin:  same-region
+            Color darkColor = DesignSystem.BorderRegion;       // rgba(0,0,0,0.80)
+            Color thinColor = DesignSystem.BorderCell;         // rgba(0,0,0,0.20)
 
+            // ── Pass 1: cells — each is a simple full-size colored rect ───────────
+            // No insets, no DarkBg overflow. Render order issues are impossible here
+            // because borders are added in a separate pass AFTER all cells.
             for (int r = 0; r < size; r++)
             {
                 for (int c = 0; c < size; c++)
@@ -226,12 +228,12 @@ namespace BrainBattle.Games.Kings.UI
                     CellData cell = grid.GetCell(r, c);
                     int      rid  = cell.RegionId;
 
-                    bool boundTop    = r == 0        || grid.GetCell(r - 1, c).RegionId != rid;
-                    bool boundBottom = r == size - 1 || grid.GetCell(r + 1, c).RegionId != rid;
-                    bool boundLeft   = c == 0        || grid.GetCell(r, c - 1).RegionId != rid;
-                    bool boundRight  = c == size - 1 || grid.GetCell(r, c + 1).RegionId != rid;
+                    regionMap.TryGetValue(rid, out RegionData region);
+                    Color regionColor = (region != null && region.RegionColor != Color.white)
+                        ? region.RegionColor
+                        : Color.HSVToRGB((rid * 0.13f) % 1f, 0.45f, 0.85f);
 
-                    // Container — hit area, coordinate origin, no Image.
+                    // Container — hit area + coordinate origin. No Image component.
                     var cellGo = new GameObject($"Cell_{r}_{c}", typeof(RectTransform));
                     var rt     = cellGo.GetComponent<RectTransform>();
                     rt.SetParent(_gridPanel, false);
@@ -241,47 +243,22 @@ namespace BrainBattle.Games.Kings.UI
                     rt.anchoredPosition = new Vector2(c * _cellSize, -r * _cellSize);
                     rt.sizeDelta        = new Vector2(_cellSize, _cellSize);
 
-                    // Dark background — fills cell and extends bt beyond each region-boundary side.
-                    var darkGo = new GameObject("DarkBg", typeof(RectTransform), typeof(Image));
-                    var darkRt = darkGo.GetComponent<RectTransform>();
-                    darkRt.SetParent(rt, false);
-                    darkRt.anchorMin = Vector2.zero;
-                    darkRt.anchorMax = Vector2.one;
-                    darkRt.offsetMin = new Vector2(boundLeft   ? -bt : 0f, boundBottom ? -bt : 0f);
-                    darkRt.offsetMax = new Vector2(boundRight  ?  bt : 0f, boundTop    ?  bt : 0f);
-                    var darkImg           = darkGo.GetComponent<Image>();
-                    darkImg.color         = _thickBorderColor;
-                    darkImg.raycastTarget = false;
+                    // Background — fills entire cell with region color.
+                    var bgGo  = new GameObject("Bg", typeof(RectTransform), typeof(Image));
+                    var bgRt  = bgGo.GetComponent<RectTransform>();
+                    bgRt.SetParent(rt, false);
+                    bgRt.anchorMin = Vector2.zero;
+                    bgRt.anchorMax = Vector2.one;
+                    bgRt.offsetMin = Vector2.zero;
+                    bgRt.offsetMax = Vector2.zero;
+                    var bgImg           = bgGo.GetComponent<Image>();
+                    bgImg.color         = regionColor;
+                    bgImg.raycastTarget = false;
 
-                    // Colored foreground — inset to reveal dark behind it.
-                    //   Non-boundary side: thinHalf each → BorderCellThickness total gap (same-region).
-                    //   Boundary side:     bt/2 each → BorderRegionThickness total gap (diff-region).
-                    float thinHalf = DesignSystem.BorderCellThickness * 0.5f;
-                    float insetL = boundLeft   ? bt * 0.5f : thinHalf;
-                    float insetR = boundRight  ? bt * 0.5f : thinHalf;
-                    float insetT = boundTop    ? bt * 0.5f : thinHalf;
-                    float insetB = boundBottom ? bt * 0.5f : thinHalf;
-
-                    var fgGo = new GameObject("ColoredFg", typeof(RectTransform), typeof(Image));
-                    var fgRt = fgGo.GetComponent<RectTransform>();
-                    fgRt.SetParent(rt, false);
-                    fgRt.anchorMin = Vector2.zero;
-                    fgRt.anchorMax = Vector2.one;
-                    fgRt.offsetMin = new Vector2(insetL,  insetB);
-                    fgRt.offsetMax = new Vector2(-insetR, -insetT);
-
-                    regionMap.TryGetValue(rid, out RegionData region);
-                    Color regionColor = (region != null && region.RegionColor != Color.white)
-                        ? region.RegionColor
-                        : Color.HSVToRGB((rid * 0.13f) % 1f, 0.45f, 0.85f);
-
-                    var fgImg           = fgGo.GetComponent<Image>();
-                    fgImg.color         = regionColor;
-
-                    // Icon — centered inside the foreground.
+                    // Icon — centered inside the cell.
                     var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
                     var iconRt = iconGo.GetComponent<RectTransform>();
-                    iconRt.SetParent(fgRt, false);
+                    iconRt.SetParent(rt, false);
                     iconRt.anchorMin        = new Vector2(0.5f, 0.5f);
                     iconRt.anchorMax        = new Vector2(0.5f, 0.5f);
                     iconRt.pivot            = new Vector2(0.5f, 0.5f);
@@ -293,9 +270,9 @@ namespace BrainBattle.Games.Kings.UI
                     icon.preserveAspect = true;
                     icon.raycastTarget  = false;
 
-                    var view = new CellView { Background = fgImg, Icon = icon, IconRt = iconRt, BaseColor = regionColor };
-                    _cellViews[r, c] = view;
-                    ApplyCellState(view, cell.State);
+                    _cellViews[r, c] = new CellView
+                        { Background = bgImg, Icon = icon, IconRt = iconRt, BaseColor = regionColor };
+                    ApplyCellState(_cellViews[r, c], cell.State);
 
                     var handler      = cellGo.AddComponent<CellEventHandler>();
                     handler.Row      = r;
@@ -303,6 +280,59 @@ namespace BrainBattle.Games.Kings.UI
                     handler.Renderer = this;
                 }
             }
+
+            // ── Pass 2: vertical internal borders (between columns) ───────────────
+            // Placed AFTER all cells → always rendered on top. No render-order issues.
+            for (int r = 0; r < size; r++)
+            {
+                for (int c = 0; c < size - 1; c++)
+                {
+                    bool diff = grid.GetCell(r, c).RegionId != grid.GetCell(r, c + 1).RegionId;
+                    CreateBorderLine(_gridPanel,
+                        center:   new Vector2((c + 1) * _cellSize, -(r + 0.5f) * _cellSize),
+                        size:     new Vector2(diff ? bt : thin, _cellSize),
+                        color:    diff ? darkColor : thinColor);
+                }
+            }
+
+            // ── Pass 3: horizontal internal borders (between rows) ────────────────
+            for (int r = 0; r < size - 1; r++)
+            {
+                for (int c = 0; c < size; c++)
+                {
+                    bool diff = grid.GetCell(r, c).RegionId != grid.GetCell(r + 1, c).RegionId;
+                    CreateBorderLine(_gridPanel,
+                        center:   new Vector2((c + 0.5f) * _cellSize, -(r + 1) * _cellSize),
+                        size:     new Vector2(_cellSize, diff ? bt : thin),
+                        color:    diff ? darkColor : thinColor);
+                }
+            }
+
+            // ── Pass 4: outer border frame ────────────────────────────────────────
+            float gs = _cellSize * size;
+            CreateBorderLine(_gridPanel, new Vector2(gs * 0.5f, bt * 0.5f),         new Vector2(gs + bt, bt), darkColor); // top
+            CreateBorderLine(_gridPanel, new Vector2(gs * 0.5f, -gs - bt * 0.5f),   new Vector2(gs + bt, bt), darkColor); // bottom
+            CreateBorderLine(_gridPanel, new Vector2(-bt * 0.5f, -gs * 0.5f),       new Vector2(bt, gs + bt), darkColor); // left
+            CreateBorderLine(_gridPanel, new Vector2(gs + bt * 0.5f, -gs * 0.5f),   new Vector2(bt, gs + bt), darkColor); // right
+        }
+
+        /// <summary>
+        /// Creates a single border line Image under <paramref name="parent"/>.
+        /// Uses top-left anchor + center pivot, same coordinate space as the cell grid.
+        /// </summary>
+        private static void CreateBorderLine(RectTransform parent, Vector2 center, Vector2 size, Color color)
+        {
+            var go  = new GameObject("Border", typeof(RectTransform), typeof(Image));
+            var rt  = go.GetComponent<RectTransform>();
+            rt.SetParent(parent, false);
+            rt.anchorMin        = new Vector2(0f, 1f);  // top-left anchor
+            rt.anchorMax        = new Vector2(0f, 1f);
+            rt.pivot            = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = center;
+            rt.sizeDelta        = size;
+            var img           = go.GetComponent<Image>();
+            img.color         = color;
+            img.raycastTarget = false;
         }
 
         // ── Cell state ────────────────────────────────────────────────────────────

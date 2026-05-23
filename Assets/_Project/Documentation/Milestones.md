@@ -61,6 +61,7 @@
 - [x] Bug prevention — null guards with informative error messages in TipsButton/RestartButton/VictoryPanel Awake()
 - [x] Bug prevention — KingsSceneValidator editor tool (BrainBattle/Validate Kings Scene): checks all SerializeField wiring, reports errors before play mode
 - [x] Bug prevention — CLAUDE.md updated with scene wiring rules, DesignSystem runtime-read rule, when to re-run scene builder
+- [x] Fix: Grid border rendering rewritten — 2-pass explicit border lines (cells first, borders on top) eliminates DarkBg render-order overdraw bug that caused missing/inconsistent/uneven borders on device
 - [ ] Polish & internal build
 
 ## Milestone 2: Level Generation + Progression
