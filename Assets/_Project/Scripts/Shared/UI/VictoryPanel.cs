@@ -92,7 +92,7 @@ namespace BrainBattle.Shared
                 PlayerPrefs.SetInt("Kings_PendingLevel", _sceneBootstrap.CurrentLevelNumber + 1);
                 PlayerPrefs.Save();
             }
-            SceneManager.LoadScene("LevelSelect");
+            SceneManager.LoadScene("SampleScene");
         }
 
         private void OnRestart()
