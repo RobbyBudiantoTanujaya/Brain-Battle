@@ -9,16 +9,15 @@ namespace BrainBattle.Shared
 {
     public sealed class VictoryPanel : MonoBehaviour
     {
-        private const string PrefKeyFormat = "Kings_Level_{0}_Stars";
-        private const string TimeFormat    = "{0:00}:{1:00}";
-        private const float  AnimDuration  = 0.4f;
+        private const string PrefKeyFormat  = "Kings_Level_{0}_Stars";
+        private const string TimeFormat     = "{0:00}:{1:00}";
+        private const float  ScaleDuration  = 0.45f;
+        private const float  FadeDuration   = 0.25f;
 
-        // ★ = U+2605 (Black Star). TMP uses dynamic font atlases; if the glyph is
-        // missing at runtime Unity will fall back to a replacement square — swap for
-        // Image-based stars later if needed.
         private static readonly string[] StarLabels = { string.Empty, "★", "★★", "★★★" };
 
-        [SerializeField] private GameObject          _panel;
+        [SerializeField] private GameObject          _panel;       // VictoryContent (fullscreen)
+        [SerializeField] private GameObject          _hud;         // HUD strip — hidden during victory
         [SerializeField] private TextMeshProUGUI     _timeText;
         [SerializeField] private TextMeshProUGUI     _moveCountText;
         [SerializeField] private TextMeshProUGUI     _starRatingText;
@@ -27,57 +26,40 @@ namespace BrainBattle.Shared
         [SerializeField] private Button              _mainMenuButton;
         [SerializeField] private KingsGameManager    _gameManager;
         [SerializeField] private KingsSceneBootstrap _sceneBootstrap;
-        [SerializeField] private Image               _backgroundImage; // VictoryContent background
 
+        private CanvasGroup   _canvasGroup;
         private RectTransform _panelRt;
 
         private void Awake()
         {
-            if (_panel          == null) Debug.LogError("[VictoryPanel] _panel (VictoryContent) not wired. Run BrainBattle → Build Kings Scene.", this);
+            if (_panel          == null) Debug.LogError("[VictoryPanel] _panel not wired. Run BrainBattle → Build Kings Scene.", this);
             if (_gameManager    == null) Debug.LogError("[VictoryPanel] _gameManager not wired. Run BrainBattle → Build Kings Scene.", this);
             if (_sceneBootstrap == null) Debug.LogError("[VictoryPanel] _sceneBootstrap not wired. Run BrainBattle → Build Kings Scene.", this);
 
             if (_panel == null) return;
 
+            _panelRt     = _panel.GetComponent<RectTransform>();
+            _canvasGroup = _panel.GetComponent<CanvasGroup>();
+            if (_canvasGroup == null)
+                _canvasGroup = _panel.AddComponent<CanvasGroup>();
+
             _panel.SetActive(false);
-            _panelRt = _panel.GetComponent<RectTransform>();
+
             _nextLevelButton.onClick.AddListener(OnNextLevel);
             _restartButton.onClick.AddListener(OnRestart);
             _mainMenuButton.onClick.AddListener(OnMainMenu);
-
-            // Apply victory background sprite. Uses _backgroundImage if wired in Inspector;
-            // falls back to the Image on _panel itself.
-            var targetImage = _backgroundImage != null
-                ? _backgroundImage
-                : _panel.GetComponent<Image>();
-
-            if (targetImage != null)
-            {
-                var bg = Resources.Load<Sprite>("Sprites/victory_screen_bg");
-                if (bg != null)
-                {
-                    targetImage.sprite = bg;
-                    targetImage.color  = Color.white;
-                }
-            }
         }
 
-        private void Start()
-        {
-            // Safety: re-hide in case Awake ran but something re-activated the panel.
-            _panel?.SetActive(false);
-        }
+        private void Start() => _panel?.SetActive(false);
 
         private void OnEnable()
         {
-            if (_gameManager != null)
-                _gameManager.OnGameComplete += OnGameComplete;
+            if (_gameManager != null) _gameManager.OnGameComplete += OnGameComplete;
         }
 
         private void OnDisable()
         {
-            if (_gameManager != null)
-                _gameManager.OnGameComplete -= OnGameComplete;
+            if (_gameManager != null) _gameManager.OnGameComplete -= OnGameComplete;
         }
 
         // ── Event handler ─────────────────────────────────────────────────────────
@@ -93,6 +75,7 @@ namespace BrainBattle.Shared
             if (_sceneBootstrap != null)
                 SaveResult(_sceneBootstrap.CurrentLevelNumber, stars);
 
+            _hud?.SetActive(false);   // hide game HUD — victory is fullscreen
             _panel.SetActive(true);
             StopAllCoroutines();
             StartCoroutine(AnimateEntrance());
@@ -102,9 +85,8 @@ namespace BrainBattle.Shared
 
         private void OnNextLevel()
         {
+            _hud?.SetActive(true);
             _panel.SetActive(false);
-            // Save which level to load when returning to the game scene,
-            // then go back to Level Select so the player sees their progress.
             if (_sceneBootstrap != null)
             {
                 PlayerPrefs.SetInt("Kings_PendingLevel", _sceneBootstrap.CurrentLevelNumber + 1);
@@ -115,6 +97,7 @@ namespace BrainBattle.Shared
 
         private void OnRestart()
         {
+            _hud?.SetActive(true);
             _panel.SetActive(false);
             _gameManager?.RestartGame();
         }
@@ -167,24 +150,29 @@ namespace BrainBattle.Shared
         }
 
         // ── Animation ─────────────────────────────────────────────────────────────
+        // Phase 1: fade in (FadeDuration) while scaling up from 0.85 → 1.0
+        // Phase 2: bounce settle using EaseOutBack (ScaleDuration)
 
         private IEnumerator AnimateEntrance()
         {
-            float elapsed       = 0f;
-            _panelRt.localScale = Vector3.zero;
+            _canvasGroup.alpha   = 0f;
+            _panelRt.localScale  = Vector3.one * 0.85f;
 
-            while (elapsed < AnimDuration)
+            // Fade in
+            float elapsed = 0f;
+            while (elapsed < FadeDuration)
             {
                 elapsed            += Time.unscaledDeltaTime;
-                float t             = Mathf.Clamp01(elapsed / AnimDuration);
-                _panelRt.localScale = Vector3.one * EaseOutBack(t);
+                float t             = Mathf.Clamp01(elapsed / FadeDuration);
+                _canvasGroup.alpha  = t;
+                _panelRt.localScale = Vector3.one * Mathf.Lerp(0.85f, 1f, EaseOutBack(t));
                 yield return null;
             }
 
-            _panelRt.localScale = Vector3.one;
+            _canvasGroup.alpha   = 1f;
+            _panelRt.localScale  = Vector3.one;
         }
 
-        // Ease-out-back: slight overshoot then settle, giving a bouncy panel entrance.
         private static float EaseOutBack(float t)
         {
             const float c1 = 1.70158f;

@@ -30,6 +30,7 @@ namespace BrainBattle.Kings
 
         private void Awake()
         {
+            if (_nextButton == null || _skipButton == null || _overlayPanel == null) return;
             _nextLabel = _nextButton.GetComponentInChildren<TextMeshProUGUI>();
             _nextButton.onClick.AddListener(OnNext);
             _skipButton.onClick.AddListener(Complete);

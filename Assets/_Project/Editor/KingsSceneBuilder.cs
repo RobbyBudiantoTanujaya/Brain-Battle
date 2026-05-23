@@ -39,8 +39,8 @@ namespace BrainBattle.Editor
             CreateTutorialOverlay(r);
             CreateTipsPanel(r);
             CreateRestartConfirmPanel(r);
-            CreateVictoryPanel(r);
             CreateHUD(r);
+            CreateVictoryPanel(r);  // last = topmost, covers HUD during victory
 
             WireAll(r);
 
@@ -252,55 +252,84 @@ namespace BrainBattle.Editor
         static void CreateVictoryPanel(Refs r)
         {
             // Root stays ACTIVE so VictoryPanel.OnEnable can subscribe to OnGameComplete.
-            // VictoryContent is the animated card; VictoryPanel.Awake hides it at runtime.
             r.VictoryPanelGO = MakeUIGO("VictoryPanel", r.Canvas.transform);
             Stretch(r.VictoryPanelGO);
             r.VictoryPanelGO.AddComponent<VictoryPanel>();
 
-            // Dark semi-transparent overlay behind the card.
-            var overlay = MakeUIGO("Overlay", r.VictoryPanelGO.transform);
-            Stretch(overlay);
-            overlay.AddComponent<Image>().color = DesignSystem.Overlay;
-
-            // Card — 85 % wide, centred vertically.
+            // Full-screen content — hidden until victory.
             r.VictoryContent = MakeUIGO("VictoryContent", r.VictoryPanelGO.transform);
-            Anchor(r.VictoryContent, 0.075f, 0.20f, 0.925f, 0.80f);
-            r.VictoryContent.AddComponent<Image>().color = NavyBg;
-            // Start hidden — VictoryPanel.Awake() also hides it.
+            Stretch(r.VictoryContent);
+            var vcImg           = r.VictoryContent.AddComponent<Image>();
+            vcImg.color         = Color.white;
+            vcImg.type          = Image.Type.Simple;
+            vcImg.preserveAspect = false;
+            // Load victory background sprite from Resources.
+            const string VictoryBgPath = "Assets/_Project/Resources/Sprites/victory_screen_bg.png";
+            foreach (var asset in AssetDatabase.LoadAllAssetsAtPath(VictoryBgPath))
+            {
+                if (asset is Sprite s) { vcImg.sprite = s; break; }
+            }
+            if (vcImg.sprite == null)
+            {
+                Debug.LogWarning("[KingsSceneBuilder] victory_screen_bg sprite not found — using fallback color.");
+                vcImg.color = new Color(0.05f, 0.05f, 0.15f, 0.97f);
+            }
             r.VictoryContent.SetActive(false);
 
             var content = r.VictoryContent.transform;
 
+            // ── VICTORY! title ────────────────────────────────────────────────────
+            var title           = MakeTMP("Title", content, "VICTORY!");
+            title.alignment     = TextAlignmentOptions.Center;
+            title.fontStyle     = FontStyles.Bold;
+            title.fontSize      = 96f;
+            title.color         = PinkAccent;
+            Anchor(title, 0.05f, 0.82f, 0.95f, 0.96f);
+
+            // ── Star rating ───────────────────────────────────────────────────────
+            r.VPStarRatingText           = MakeTMP("StarRatingText", content, "★★★");
+            r.VPStarRatingText.alignment = TextAlignmentOptions.Center;
+            r.VPStarRatingText.fontSize  = 96f;
+            r.VPStarRatingText.color     = PinkAccent;
+            Anchor(r.VPStarRatingText, 0.05f, 0.68f, 0.95f, 0.84f);
+
+            // ── Time ──────────────────────────────────────────────────────────────
+            var timeLabel           = MakeTMP("TimeLabel", content, "TIME");
+            timeLabel.alignment     = TextAlignmentOptions.Center;
+            timeLabel.fontSize      = 30f;
+            timeLabel.color         = new Color(0.70f, 0.70f, 0.90f, 1f);
+            Anchor(timeLabel, 0.05f, 0.60f, 0.95f, 0.68f);
+
             r.VPTimeText            = MakeTMP("TimeText", content, "00:00");
             r.VPTimeText.alignment  = TextAlignmentOptions.Center;
             r.VPTimeText.fontStyle  = FontStyles.Bold;
-            r.VPTimeText.fontSize   = 72f;
-            Anchor(r.VPTimeText, 0.05f, 0.78f, 0.95f, 0.96f);
+            r.VPTimeText.fontSize   = 80f;
+            Anchor(r.VPTimeText, 0.05f, 0.50f, 0.95f, 0.62f);
 
-            r.VPMoveCountText           = MakeTMP("MoveCountText", content, "0 moves");
+            // ── Moves ─────────────────────────────────────────────────────────────
+            var movesLabel           = MakeTMP("MovesLabel", content, "MOVES");
+            movesLabel.alignment     = TextAlignmentOptions.Center;
+            movesLabel.fontSize      = 30f;
+            movesLabel.color         = new Color(0.70f, 0.70f, 0.90f, 1f);
+            Anchor(movesLabel, 0.05f, 0.42f, 0.95f, 0.50f);
+
+            r.VPMoveCountText           = MakeTMP("MoveCountText", content, "0");
             r.VPMoveCountText.alignment = TextAlignmentOptions.Center;
-            r.VPMoveCountText.fontSize  = 40f;
-            Anchor(r.VPMoveCountText, 0.05f, 0.64f, 0.95f, 0.79f);
+            r.VPMoveCountText.fontSize  = 72f;
+            Anchor(r.VPMoveCountText, 0.05f, 0.32f, 0.95f, 0.44f);
 
-            r.VPStarRatingText           = MakeTMP("StarRatingText", content, "★★★");
-            r.VPStarRatingText.alignment = TextAlignmentOptions.Center;
-            r.VPStarRatingText.fontSize  = 88f;
-            r.VPStarRatingText.color     = PinkAccent;
-            Anchor(r.VPStarRatingText, 0.05f, 0.46f, 0.95f, 0.65f);
-
-            // Menu button — full width.
+            // ── Buttons ───────────────────────────────────────────────────────────
             r.VPMainMenuButton = MakeButton("MainMenuButton", content, "Menu");
             StylePinkButton(r.VPMainMenuButton);
-            Anchor(r.VPMainMenuButton, 0.06f, 0.30f, 0.94f, 0.44f);
+            Anchor(r.VPMainMenuButton, 0.08f, 0.20f, 0.92f, 0.31f);
 
-            // Next Level + Restart side by side below Menu.
             r.VPNextLevelButton = MakeButton("NextLevelButton", content, "Next Level");
             StylePinkButton(r.VPNextLevelButton);
-            Anchor(r.VPNextLevelButton, 0.06f, 0.06f, 0.50f, 0.28f);
+            Anchor(r.VPNextLevelButton, 0.08f, 0.06f, 0.50f, 0.18f);
 
             r.VPRestartButton = MakeButton("RestartButton", content, "Restart");
             StylePinkButton(r.VPRestartButton);
-            Anchor(r.VPRestartButton, 0.52f, 0.06f, 0.94f, 0.28f);
+            Anchor(r.VPRestartButton, 0.52f, 0.06f, 0.92f, 0.18f);
         }
 
         // Applies hot-pink (#ff2d78) style to a Button created by MakeButton().
@@ -345,6 +374,7 @@ namespace BrainBattle.Editor
             rt.anchoredPosition = Vector2.zero;
             rt.sizeDelta        = new Vector2(0f, DesignSystem.HUDHeight);
             r.HudGO.AddComponent<Image>().color = NavyBg;
+            r.HudGO.AddComponent<HUDController>();
 
             var hud = r.HudGO.transform;
 
@@ -396,6 +426,7 @@ namespace BrainBattle.Editor
             var bootstrap = r.BootstrapGO.GetComponent<KingsSceneBootstrap>();
             var renderer  = r.GridContainer.GetComponent<KingsGridRenderer>();
             var vp        = r.VictoryPanelGO.GetComponent<VictoryPanel>();
+            var hudComp   = r.HudGO.GetComponent<HUDController>();
             var undoComp  = r.UndoButtonGO.GetComponent<UndoButton>();
             var restComp  = r.HudRestartGO.GetComponent<RestartButton>();
             var tipsComp  = r.TipsButtonGO.GetComponent<TipsButton>();
@@ -441,8 +472,14 @@ namespace BrainBattle.Editor
             Set(tipsComp, "_tipsText",    r.TipsText);
             Set(tipsComp, "_closeButton", r.CloseButton);
 
+            // HUDController — timer + moves display
+            Set(hudComp, "_gameManager",   mgr);
+            Set(hudComp, "_timerText",     r.HudTimerText);
+            Set(hudComp, "_moveCountText", r.HudMoveText);
+
             // VictoryPanel
             Set(vp, "_panel",           r.VictoryContent);
+            Set(vp, "_hud",             r.HudGO);
             Set(vp, "_timeText",        r.VPTimeText);
             Set(vp, "_moveCountText",   r.VPMoveCountText);
             Set(vp, "_starRatingText",  r.VPStarRatingText);

@@ -253,7 +253,7 @@ namespace BrainBattle.Games.Kings.UI
                     bgRt.offsetMax = Vector2.zero;
                     var bgImg           = bgGo.GetComponent<Image>();
                     bgImg.color         = regionColor;
-                    bgImg.raycastTarget = false;
+                    bgImg.raycastTarget = true;  // must be true — GraphicRaycaster needs at least one hittable Image per cell
 
                     // Icon — centered inside the cell.
                     var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));

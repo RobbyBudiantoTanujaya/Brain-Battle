@@ -227,6 +227,7 @@ namespace BrainBattle.Games.Kings.Logic
         private void OnCellTapped(int row, int col)
         {
             if (!_gameActive || _currentGrid == null || _gridRenderer == null) return;
+            if (IsAutoPlacedDot(row, col)) return;
 
             CellState currentState = _currentGrid.GetCell(row, col).State;
             CellState newState;
@@ -277,6 +278,7 @@ namespace BrainBattle.Games.Kings.Logic
         private void OnCellDragEntered(int row, int col, CellState targetState)
         {
             if (!_gameActive || _currentGrid == null || _gridRenderer == null) return;
+            if (IsAutoPlacedDot(row, col)) return;
             CellState current = _currentGrid.GetCell(row, col).State;
             if (current == targetState) return;
             // Never overwrite a Crown via drag; crowns require an explicit double-tap.
@@ -403,6 +405,14 @@ namespace BrainBattle.Games.Kings.Logic
             }
 
             _autoPlacedDots.Remove(crownPos);
+        }
+
+        private bool IsAutoPlacedDot(int row, int col)
+        {
+            var pos = new Vector2Int(col, row);
+            foreach (var set in _autoPlacedDots.Values)
+                if (set.Contains(pos)) return true;
+            return false;
         }
 
         // ── Private: undo ─────────────────────────────────────────────────────────
