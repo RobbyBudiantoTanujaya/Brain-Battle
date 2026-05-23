@@ -112,6 +112,8 @@
 - [x] KingsUniquenessVerifier: scaled retries (n²×2) and swap count (n/2..n) for reliable 10×10 generation
 - [x] Region size constraint for 8×8+ grids — max 1 single-cell region, max 2 two-cell regions (LevelGeneratorService.PassesRegionSizeConstraints)
 - [x] All level assets deleted and regenerated fresh (18 levels: Beginner×6, Expert×6, Impossible×6)
+- [x] Fix: SyncSceneByPath uses OpenSceneMode.Single — prevents cross-scene contamination where rogue KingsSceneBootstrap appeared in LevelSelect causing infinite redirect loop
+- [x] Fix: ApplyLevels uses reflection + SetDirty instead of SerializedObject.Apply — preserves intra-scene component refs (Button, Image, TMP) during scene save
 ## Milestone 3: Polish + Monetization + Launch v1.0
 - [ ] Audio system (SFX: tap, crown place, dot place, undo, victory; BGM: loopable ambient)
 - [ ] Haptic feedback (light tap on cell, medium on crown place, strong on victory)
