@@ -284,41 +284,66 @@ namespace BrainBattle.Kings.Editor
             LevelData[] orderedLevels = LoadOrderedLevels();
             int synced = 0;
 
-            // Sync LevelLoader (SampleScene)
-            var levelLoaders = UnityEngine.Object.FindObjectsByType<LevelLoader>(FindObjectsSortMode.None);
-            foreach (LevelLoader loader in levelLoaders)
+            synced += SyncSceneByPath("Assets/_Project/Scenes/SampleScene.unity",  orderedLevels);
+            synced += SyncSceneByPath("Assets/_Project/Scenes/LevelSelect.unity",  orderedLevels);
+
+            UnityEngine.Debug.Log($"[KingsLevelGenerator] Synced {synced} component(s) across both scenes with {orderedLevels.Length} level assets.");
+        }
+
+        // Opens the scene additively if not already loaded, updates all LevelLoader and
+        // LevelSelectController components in it, saves the scene, then closes it again
+        // (unless it was already open before we started).
+        private static int SyncSceneByPath(string scenePath, LevelData[] orderedLevels)
+        {
+            if (!System.IO.File.Exists(scenePath))
             {
-                var so   = new SerializedObject(loader);
-                var prop = so.FindProperty("_allLevels");
-                prop.arraySize = orderedLevels.Length;
-                for (int i = 0; i < orderedLevels.Length; i++)
-                    prop.GetArrayElementAtIndex(i).objectReferenceValue = orderedLevels[i];
-                so.ApplyModifiedPropertiesWithoutUndo();
-                EditorUtility.SetDirty(loader);
-                EditorSceneManager.MarkSceneDirty(loader.gameObject.scene);
-                synced++;
+                UnityEngine.Debug.LogWarning($"[KingsLevelGenerator] Scene not found, skipping sync: {scenePath}");
+                return 0;
             }
 
-            // Sync LevelSelectController (LevelSelect scene)
-            var controllers = UnityEngine.Object.FindObjectsByType<LevelSelectController>(FindObjectsSortMode.None);
-            foreach (LevelSelectController ctrl in controllers)
+            var existing = EditorSceneManager.GetSceneByPath(scenePath);
+            bool wasLoaded = existing.IsValid() && existing.isLoaded;
+
+            var scene = wasLoaded
+                ? existing
+                : EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Additive);
+
+            int synced = 0;
+            foreach (var root in scene.GetRootGameObjects())
             {
-                var so   = new SerializedObject(ctrl);
-                var prop = so.FindProperty("_allLevels");
-                prop.arraySize = orderedLevels.Length;
-                for (int i = 0; i < orderedLevels.Length; i++)
-                    prop.GetArrayElementAtIndex(i).objectReferenceValue = orderedLevels[i];
-                so.ApplyModifiedPropertiesWithoutUndo();
-                EditorUtility.SetDirty(ctrl);
-                EditorSceneManager.MarkSceneDirty(ctrl.gameObject.scene);
-                synced++;
+                foreach (var loader in root.GetComponentsInChildren<LevelLoader>(true))
+                {
+                    ApplyLevels(loader, orderedLevels);
+                    synced++;
+                }
+                foreach (var ctrl in root.GetComponentsInChildren<LevelSelectController>(true))
+                {
+                    ApplyLevels(ctrl, orderedLevels);
+                    synced++;
+                }
             }
 
             if (synced > 0)
             {
-                EditorSceneManager.SaveOpenScenes();
-                UnityEngine.Debug.Log($"[KingsLevelGenerator] Synced {synced} component(s) with {orderedLevels.Length} level assets.");
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
             }
+
+            if (!wasLoaded)
+                EditorSceneManager.CloseScene(scene, true);
+
+            return synced;
+        }
+
+        private static void ApplyLevels(UnityEngine.Component comp, LevelData[] orderedLevels)
+        {
+            var so   = new SerializedObject(comp);
+            var prop = so.FindProperty("_allLevels");
+            prop.arraySize = orderedLevels.Length;
+            for (int i = 0; i < orderedLevels.Length; i++)
+                prop.GetArrayElementAtIndex(i).objectReferenceValue = orderedLevels[i];
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(comp);
         }
 
         private static LevelData[] LoadOrderedLevels()
