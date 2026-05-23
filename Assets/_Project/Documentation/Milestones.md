@@ -104,6 +104,14 @@
   - [x] KingsSceneBuilder: TimerBar 48px NavyBg, HUD 72px NavyBg, VictoryPanel dark overlay + 85% wide + pink buttons + ★★★ in pink, StylePinkButton helper
   - [x] LevelSelectSceneBuilder: flush tabs (no gap), 6px progress track, main_menu_bg background, grid 300×300/12px, PLAY button full-width pink 64px
   - [x] LevelSelectButton prefab: label centred (full anchor), fontSize 56px bold
+- [x] Level generator: 6 new levels per run, all grid sizes, no overwrites (System.IO discovery)
+- [x] LevelSelectController: data-driven _allLevels (removed hardcoded DiffPools); BuildDiffPools() at runtime
+- [x] LevelSelectSceneBuilder: wires _allLevels on LevelSelectController after generation
+- [x] KingsLevelGenerator: SyncOpenSceneLevelLoaders() also syncs LevelSelectController._allLevels
+- [x] Fix: Next Level button goes directly to next game level (SampleScene), not LevelSelect
+- [x] KingsUniquenessVerifier: scaled retries (n²×2) and swap count (n/2..n) for reliable 10×10 generation
+- [x] Region size constraint for 8×8+ grids — max 1 single-cell region, max 2 two-cell regions (LevelGeneratorService.PassesRegionSizeConstraints)
+- [x] All level assets deleted and regenerated fresh (18 levels: Beginner×6, Expert×6, Impossible×6)
 ## Milestone 3: Polish + Monetization + Launch v1.0
 - [ ] Audio system (SFX: tap, crown place, dot place, undo, victory; BGM: loopable ambient)
 - [ ] Haptic feedback (light tap on cell, medium on crown place, strong on victory)

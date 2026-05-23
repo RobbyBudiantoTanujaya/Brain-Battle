@@ -64,6 +64,108 @@ namespace BrainBattle.Kings.Editor
                 "OK");
         }
 
+        // ── Duplicate fixer ───────────────────────────────────────────────────────
+
+        [MenuItem("BrainBattle/Fix Duplicate Levels")]
+        public static void FixDuplicateLevels()
+        {
+            var guids = AssetDatabase.FindAssets("t:LevelData", new[] { OutputPath });
+            var all = new List<LevelData>();
+            foreach (var guid in guids)
+            {
+                var asset = AssetDatabase.LoadAssetAtPath<LevelData>(AssetDatabase.GUIDToAssetPath(guid));
+                if (asset != null) all.Add(asset);
+            }
+            all.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+
+            // Identify duplicates (keep first occurrence, fix rest)
+            var seenFps    = new Dictionary<string, string>();
+            var duplicates = new List<LevelData>();
+            foreach (var ld in all)
+            {
+                string fp = BuildFingerprint(ld);
+                string first;
+                if (seenFps.TryGetValue(fp, out first))
+                    duplicates.Add(ld);
+                else
+                    seenFps[fp] = ld.name ?? "";
+            }
+
+            if (duplicates.Count == 0)
+            {
+                EditorUtility.DisplayDialog("No Duplicates", "All " + all.Count + " levels are unique.", "OK");
+                return;
+            }
+
+            var usedFps  = new HashSet<string>(seenFps.Keys);
+            int fixedCount = 0;
+            int baseSeed = unchecked((int)(DateTime.Now.Ticks >> 8));
+            var watch    = Stopwatch.StartNew();
+
+            foreach (var ld in duplicates)
+            {
+                int    levelNum  = ld.LevelNumber;
+                int    size      = ld.GridSize;
+                string diff      = ld.Difficulty;
+                string label     = ld.name ?? "(unnamed)";
+
+                LevelData replacement = null;
+                string    newFp       = null;
+
+                for (int attempt = 0; attempt < 50000 && replacement == null; attempt++)
+                {
+                    int seed = unchecked(baseSeed ^ (fixedCount * 99991 + attempt * 1009));
+                    var candidate = LevelGeneratorService.GenerateLevel(levelNum, size, diff, seed);
+                    if (candidate == null) continue;
+
+                    string fp = BuildFingerprint(candidate);
+                    if (!usedFps.Contains(fp)) { replacement = candidate; newFp = fp; }
+                    else UnityEngine.Object.DestroyImmediate(candidate);
+                }
+
+                if (replacement == null)
+                {
+                    UnityEngine.Debug.LogError("[KingsLevelGenerator] Could not find unique replacement for " + label);
+                    continue;
+                }
+
+                EditorUtility.CopySerialized(replacement, ld);
+                EditorUtility.SetDirty(ld);
+                UnityEngine.Object.DestroyImmediate(replacement);
+                usedFps.Add(newFp);
+                fixedCount++;
+                UnityEngine.Debug.Log("[KingsLevelGenerator] Fixed duplicate: " + label);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            watch.Stop();
+
+            EditorUtility.DisplayDialog(
+                "Duplicate Fix Complete",
+                fixedCount + "/" + duplicates.Count + " duplicates fixed in " + watch.ElapsedMilliseconds + "ms.",
+                "OK");
+        }
+
+        // Full fingerprint: all queen positions (sorted) + all cell→regionId assignments (sorted).
+        // Two levels with the same fingerprint are guaranteed to have identical puzzle content.
+        private static string BuildFingerprint(LevelData ld)
+        {
+            var q      = ld.Solution;
+            var qparts = new string[q.Length];
+            for (int i = 0; i < q.Length; i++)
+                qparts[i] = q[i].x.ToString() + "," + q[i].y.ToString();
+            System.Array.Sort(qparts);
+
+            var cells = new List<string>();
+            foreach (var reg in ld.Regions)
+                foreach (var cell in reg.Cells)
+                    cells.Add(cell.x.ToString() + "," + cell.y.ToString() + ":" + reg.RegionId.ToString());
+            cells.Sort();
+
+            return string.Join("|", qparts) + "@" + string.Join("|", cells.ToArray());
+        }
+
         // Builds 6 new levels per category (Beginner/Expert/Impossible) on top of what already exists.
         // Seeds are time-derived so each run produces different content.
         private static LevelSpec[] BuildNewLevels()
