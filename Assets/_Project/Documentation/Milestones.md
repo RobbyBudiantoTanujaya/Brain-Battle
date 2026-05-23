@@ -104,7 +104,42 @@
   - [x] KingsSceneBuilder: TimerBar 48px NavyBg, HUD 72px NavyBg, VictoryPanel dark overlay + 85% wide + pink buttons + ★★★ in pink, StylePinkButton helper
   - [x] LevelSelectSceneBuilder: flush tabs (no gap), 6px progress track, main_menu_bg background, grid 300×300/12px, PLAY button full-width pink 64px
   - [x] LevelSelectButton prefab: label centred (full anchor), fontSize 56px bold
-## Milestone 3: Random Map Mode
-## Milestone 4: Game #2
-## Milestone 5: PvP
-## Milestone 6: Audio
+## Milestone 3: Polish + Monetization + Launch v1.0
+- [ ] Audio system (SFX: tap, crown place, dot place, undo, victory; BGM: loopable ambient)
+- [ ] Haptic feedback (light tap on cell, medium on crown place, strong on victory)
+- [ ] Animations (crown pop-in scale tween, victory panel slide-up, star fill sequential)
+- [ ] Splash screen + app icon (1024x1024 master)
+- [ ] Monetization: AdMob interstitial (between levels) + rewarded ad (unlock hint)
+- [ ] Hint system gated behind rewarded ad (highlights one valid cell)
+- [ ] Firebase Analytics (level_start, level_complete, level_fail, ad_watched events)
+- [ ] Firebase Crashlytics
+- [ ] Onboarding: first-run tutorial enforce level 1 Beginner before anything unlocks
+- [ ] Settings screen (sound toggle, music toggle, haptic toggle, reset progress)
+- [ ] Google Play store assets (screenshots, feature graphic, short/long description)
+- [ ] App Store store assets (screenshots, preview video optional, description)
+- [ ] Internal build → closed testing → production submission
+
+## Milestone 4: Content + Retention
+- [ ] Daily Challenge mode — seeded RNG by date, same puzzle for all players
+- [ ] Daily Challenge streak tracking (PlayerPrefs, reset if skip day)
+- [ ] Infinite Mode: procedural generation via existing NQueensSolver (size 5–10, random difficulty)
+- [ ] Level rating system: post-level optional 1–5 star user rating (Firebase event)
+- [ ] Push notification: daily challenge reminder (Unity Mobile Notifications)
+- [ ] Leaderboard: Daily Challenge completion time top-10 (Google Play Games / Game Center)
+- [ ] 35 level expansion: Impossible tier extended to level 50
+
+## Milestone 5: Game #2 (TBD puzzle type)
+Tentukan puzzle type sebelum milestone ini dimulai. Kandidat: Nonogram, Kakuro, atau Sudoku variant.
+
+- [ ] Puzzle #2 game design doc + constraint validator
+- [ ] Grid renderer untuk puzzle #2 (reuse component pattern dari Kings)
+- [ ] Level generator + 35 levels
+- [ ] Level select integration (tab baru di existing LevelSelectController)
+- [ ] Milestone 3 feature parity (audio, haptic, analytics, monetization)
+
+## Milestone 6: Social + PvP
+- [ ] Account system (Google/Apple Sign-In via Firebase Auth)
+- [ ] Friend challenge: kirim puzzle ke friend (async, share link)
+- [ ] Real-time PvP: race mode — sama puzzle, siapa selesai duluan menang (Photon atau Firebase RTDB)
+- [ ] PvP matchmaking queue (rank-based ELO sederhana)
+- [ ] PvP reward: cosmetic crown skins (no pay-to-win)

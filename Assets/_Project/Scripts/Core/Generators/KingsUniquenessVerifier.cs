@@ -8,18 +8,22 @@ namespace BrainBattle.Core.Generators
     public static class KingsUniquenessVerifier
     {
         private static readonly (int dr, int dc)[] Dirs4 = { (-1, 0), (1, 0), (0, -1), (0, 1) };
-        private const int MaxRetries = 50;
 
         // Verifies the regionMap has exactly one valid solution.
         // Mutates regionMap in-place (border cell swaps) until unique or retries exhausted.
         // Returns true if unique solution achieved; false means caller should bump seed.
         public static bool Verify(int n, int[,] regionMap, Vector2Int[] queens, SystemRandom rng)
         {
-            for (int attempt = 0; attempt < MaxRetries; attempt++)
+            // Scale retries with board area — 10x10 needs ~200 retries, 4x4 needs ~50
+            int maxRetries = Math.Max(50, n * n * 2);
+            // Scale swaps: larger boards need more perturbation per retry
+            int minSwaps = Math.Max(3, n / 2);
+            int maxSwaps = Math.Max(6, n);
+
+            for (int attempt = 0; attempt < maxRetries; attempt++)
             {
                 if (CountSolutions(n, regionMap) == 1) return true;
-                // Spec: swap 3-5 border cells per retry for meaningful perturbation on large boards
-                int swaps = rng.Next(3, 6);
+                int swaps = rng.Next(minSwaps, maxSwaps + 1);
                 for (int s = 0; s < swaps; s++)
                     MutateBorder(n, regionMap, queens, rng);
             }

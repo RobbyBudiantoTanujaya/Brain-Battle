@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -10,8 +12,8 @@ namespace BrainBattle.Kings.Editor
     public static class KingsLevelGenerator
     {
         private const string OutputPath = "Assets/_Project/ScriptableObjects/Kings/Levels";
+        private const int NewLevelsPerCategory = 6;
 
-        private static readonly LevelSpec[] Levels = BuildLevels();
         private static readonly (string oldName, string newName)[] LegacyRenames =
         {
             ("KingsLevel_01_4x4", "Kings_Beginner_01"),
@@ -27,10 +29,12 @@ namespace BrainBattle.Kings.Editor
             EnsureDirectory(OutputPath);
             RenameLegacyAssets();
 
+            LevelSpec[] newLevels = BuildNewLevels();
+
             int generated = 0;
             var totalWatch = Stopwatch.StartNew();
 
-            foreach (var level in Levels)
+            foreach (var level in newLevels)
             {
                 var watch = Stopwatch.StartNew();
 
@@ -55,8 +59,91 @@ namespace BrainBattle.Kings.Editor
             totalWatch.Stop();
             EditorUtility.DisplayDialog(
                 "Kings Level Generation Complete",
-                $"Generated {generated}/{Levels.Length} levels in {totalWatch.ElapsedMilliseconds}ms.\n\nSaved to:\n{OutputPath}",
+                $"Generated {generated}/{newLevels.Length} levels in {totalWatch.ElapsedMilliseconds}ms.\n\nSaved to:\n{OutputPath}",
                 "OK");
+        }
+
+        // Builds 6 new levels per category (Beginner/Expert/Impossible) on top of what already exists.
+        // Seeds are time-derived so each run produces different content.
+        private static LevelSpec[] BuildNewLevels()
+        {
+            int beginnerMax  = MaxDifficultyNumber("Beginner");
+            int expertMax    = MaxDifficultyNumber("Expert");
+            int impossibleMax = MaxDifficultyNumber("Impossible");
+            int totalExisting = CountTotalExisting();
+
+            int levelNumber = totalExisting + 1;
+
+            // Use current time as entropy so each execution generates different seeds.
+            // XOR with a large prime and per-difficulty salt to avoid collisions between categories.
+            int baseSeed = unchecked((int)(DateTime.Now.Ticks >> 8));
+
+            var levels = new List<LevelSpec>(NewLevelsPerCategory * 3);
+
+            // 6 new Beginner levels — alternate 4x4 / 5x5
+            for (int i = 0; i < NewLevelsPerCategory; i++)
+            {
+                int diffNum = beginnerMax + i + 1;
+                int size = (diffNum % 2 == 1) ? 4 : 5;
+                int seed = unchecked(baseSeed ^ (10000 + diffNum * 97));
+                Add(levels, ref levelNumber, "Beginner", diffNum, size, seed);
+            }
+
+            // 6 new Expert levels — alternate 6x6 / 8x8
+            for (int i = 0; i < NewLevelsPerCategory; i++)
+            {
+                int diffNum = expertMax + i + 1;
+                int size = (diffNum % 2 == 1) ? 6 : 8;
+                int seed = unchecked(baseSeed ^ (20000 + diffNum * 97));
+                Add(levels, ref levelNumber, "Expert", diffNum, size, seed);
+            }
+
+            // 6 new Impossible levels — all 10x10
+            for (int i = 0; i < NewLevelsPerCategory; i++)
+            {
+                int diffNum = impossibleMax + i + 1;
+                int seed = unchecked(baseSeed ^ (30000 + diffNum * 97));
+                Add(levels, ref levelNumber, "Impossible", diffNum, 10, seed);
+            }
+
+            return levels.ToArray();
+        }
+
+        // Returns the highest DifficultyNumber for a given category already on disk (0 if none).
+        // Uses System.IO directly — bypasses AssetDatabase so it works even before a Refresh.
+        private static int MaxDifficultyNumber(string category)
+        {
+            string dir = LevelsAbsolutePath();
+            if (!Directory.Exists(dir)) return 0;
+
+            string prefix = $"Kings_{category}_";
+            int max = 0;
+            foreach (string file in Directory.GetFiles(dir, $"Kings_{category}_*.asset"))
+            {
+                string filename = Path.GetFileNameWithoutExtension(file);
+                if (filename.StartsWith(prefix) &&
+                    int.TryParse(filename.Substring(prefix.Length), out int num))
+                    max = Math.Max(max, num);
+            }
+            return max;
+        }
+
+        // Counts total level assets already saved (to determine next global levelNumber).
+        private static int CountTotalExisting()
+        {
+            string dir = LevelsAbsolutePath();
+            if (!Directory.Exists(dir)) return 0;
+            return Directory.GetFiles(dir, "Kings_*.asset").Length;
+        }
+
+        // Converts the Unity-relative OutputPath to an absolute filesystem path.
+        private static string LevelsAbsolutePath()
+        {
+            // Application.dataPath = "<project>/Assets"
+            // OutputPath           = "Assets/_Project/..."
+            // Strip leading "Assets/" and join with dataPath.
+            string relative = OutputPath.Substring("Assets/".Length).Replace('/', Path.DirectorySeparatorChar);
+            return Path.Combine(Application.dataPath, relative);
         }
 
         private static void RenameLegacyAssets()
@@ -91,7 +178,7 @@ namespace BrainBattle.Kings.Editor
         private static void SyncOpenSceneLevelLoaders()
         {
             LevelData[] orderedLevels = LoadOrderedLevels();
-            var levelLoaders = Object.FindObjectsByType<LevelLoader>(FindObjectsSortMode.None);
+            var levelLoaders = UnityEngine.Object.FindObjectsByType<LevelLoader>(FindObjectsSortMode.None);
             if (levelLoaders.Length == 0) return;
 
             foreach (LevelLoader loader in levelLoaders)
@@ -132,7 +219,7 @@ namespace BrainBattle.Kings.Editor
             {
                 EditorUtility.CopySerialized(levelData, existing);
                 EditorUtility.SetDirty(existing);
-                Object.DestroyImmediate(levelData);
+                UnityEngine.Object.DestroyImmediate(levelData);
                 return;
             }
 
@@ -154,53 +241,8 @@ namespace BrainBattle.Kings.Editor
             }
         }
 
-        private static LevelSpec[] BuildLevels()
-        {
-            var levels = new List<LevelSpec>(35);
-            int levelNumber = 1;
-
-            Add(levels, ref levelNumber, "Beginner", 1, 4, 1001);
-            Add(levels, ref levelNumber, "Beginner", 2, 5, 1002);
-            Add(levels, ref levelNumber, "Beginner", 3, 4, 3001);
-            Add(levels, ref levelNumber, "Beginner", 4, 5, 3002);
-            Add(levels, ref levelNumber, "Beginner", 5, 4, 3003);
-            Add(levels, ref levelNumber, "Beginner", 6, 5, 3004);
-            Add(levels, ref levelNumber, "Beginner", 7, 4, 3005);
-            Add(levels, ref levelNumber, "Beginner", 8, 5, 3006);
-            Add(levels, ref levelNumber, "Beginner", 9, 4, 3007);
-            Add(levels, ref levelNumber, "Beginner", 10, 5, 3008);
-            Add(levels, ref levelNumber, "Beginner", 11, 4, 3009);
-            Add(levels, ref levelNumber, "Beginner", 12, 5, 3010);
-
-            Add(levels, ref levelNumber, "Expert", 1, 6, 1003);
-            Add(levels, ref levelNumber, "Expert", 2, 8, 1004);
-            Add(levels, ref levelNumber, "Expert", 3, 6, 4001);
-            Add(levels, ref levelNumber, "Expert", 4, 8, 4002);
-            Add(levels, ref levelNumber, "Expert", 5, 6, 4003);
-            Add(levels, ref levelNumber, "Expert", 6, 8, 4004);
-            Add(levels, ref levelNumber, "Expert", 7, 6, 4005);
-            Add(levels, ref levelNumber, "Expert", 8, 8, 4006);
-            Add(levels, ref levelNumber, "Expert", 9, 6, 4007);
-            Add(levels, ref levelNumber, "Expert", 10, 8, 4008);
-            Add(levels, ref levelNumber, "Expert", 11, 6, 4009);
-            Add(levels, ref levelNumber, "Expert", 12, 8, 4010);
-
-            Add(levels, ref levelNumber, "Impossible", 1, 10, 1005);
-            Add(levels, ref levelNumber, "Impossible", 2, 10, 2001);
-            Add(levels, ref levelNumber, "Impossible", 3, 10, 2002);
-            Add(levels, ref levelNumber, "Impossible", 4, 10, 2003);
-            Add(levels, ref levelNumber, "Impossible", 5, 10, 2004);
-            Add(levels, ref levelNumber, "Impossible", 6, 10, 2005);
-            Add(levels, ref levelNumber, "Impossible", 7, 10, 2006);
-            Add(levels, ref levelNumber, "Impossible", 8, 10, 2007);
-            Add(levels, ref levelNumber, "Impossible", 9, 10, 2008);
-            Add(levels, ref levelNumber, "Impossible", 10, 10, 2009);
-            Add(levels, ref levelNumber, "Impossible", 11, 10, 2010);
-
-            return levels.ToArray();
-        }
-
-        private static void Add(List<LevelSpec> levels, ref int levelNumber, string difficulty, int difficultyNumber, int size, int seed)
+        private static void Add(List<LevelSpec> levels, ref int levelNumber, string difficulty,
+                                 int difficultyNumber, int size, int seed)
         {
             levels.Add(new LevelSpec(levelNumber, difficulty, difficultyNumber, size, seed));
             levelNumber++;
