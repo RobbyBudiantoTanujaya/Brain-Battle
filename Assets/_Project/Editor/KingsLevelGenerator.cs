@@ -282,17 +282,24 @@ namespace BrainBattle.Kings.Editor
         private static void SyncOpenSceneLevelLoaders()
         {
             LevelData[] orderedLevels = LoadOrderedLevels();
-            int synced = 0;
 
+            // Save any unsaved changes before switching scenes.
+            EditorSceneManager.SaveOpenScenes();
+            string originalPath = EditorSceneManager.GetActiveScene().path;
+
+            int synced = 0;
             synced += SyncSceneByPath("Assets/_Project/Scenes/SampleScene.unity",  orderedLevels);
             synced += SyncSceneByPath("Assets/_Project/Scenes/LevelSelect.unity",  orderedLevels);
+
+            // Restore the scene the user had open.
+            if (!string.IsNullOrEmpty(originalPath) && System.IO.File.Exists(originalPath))
+                EditorSceneManager.OpenScene(originalPath, OpenSceneMode.Single);
 
             UnityEngine.Debug.Log($"[KingsLevelGenerator] Synced {synced} component(s) across both scenes with {orderedLevels.Length} level assets.");
         }
 
-        // Opens the scene additively if not already loaded, updates all LevelLoader and
-        // LevelSelectController components in it, saves the scene, then closes it again
-        // (unless it was already open before we started).
+        // Opens the scene alone (Single mode — no other scenes loaded, no contamination),
+        // updates _allLevels on every LevelLoader and LevelSelectController, then saves.
         private static int SyncSceneByPath(string scenePath, LevelData[] orderedLevels)
         {
             if (!System.IO.File.Exists(scenePath))
@@ -301,12 +308,9 @@ namespace BrainBattle.Kings.Editor
                 return 0;
             }
 
-            var existing = EditorSceneManager.GetSceneByPath(scenePath);
-            bool wasLoaded = existing.IsValid() && existing.isLoaded;
-
-            var scene = wasLoaded
-                ? existing
-                : EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Additive);
+            // Single mode closes every other open scene first — prevents cross-scene
+            // object contamination that happens with Additive when SaveScene is called.
+            var scene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
 
             int synced = 0;
             foreach (var root in scene.GetRootGameObjects())
@@ -329,20 +333,19 @@ namespace BrainBattle.Kings.Editor
                 EditorSceneManager.SaveScene(scene);
             }
 
-            if (!wasLoaded)
-                EditorSceneManager.CloseScene(scene, true);
-
             return synced;
         }
 
         private static void ApplyLevels(UnityEngine.Component comp, LevelData[] orderedLevels)
         {
-            var so   = new SerializedObject(comp);
-            var prop = so.FindProperty("_allLevels");
-            prop.arraySize = orderedLevels.Length;
-            for (int i = 0; i < orderedLevels.Length; i++)
-                prop.GetArrayElementAtIndex(i).objectReferenceValue = orderedLevels[i];
-            so.ApplyModifiedPropertiesWithoutUndo();
+            // Set _allLevels via reflection so the live object state (which has intra-scene
+            // references intact) is what gets serialized by SetDirty+SaveScene.
+            // SerializedObject.ApplyModifiedPropertiesWithoutUndo loses intra-scene component
+            // refs (Button, Image, TMP) in additively-loaded scenes — avoid it here.
+            var field = comp.GetType().GetField("_allLevels",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (field == null) return;
+            field.SetValue(comp, orderedLevels);
             EditorUtility.SetDirty(comp);
         }
 
