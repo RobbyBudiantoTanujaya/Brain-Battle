@@ -116,7 +116,13 @@
 - [x] Fix: SyncSceneByPath uses OpenSceneMode.Single — prevents cross-scene contamination where rogue KingsSceneBootstrap appeared in LevelSelect causing infinite redirect loop
 - [x] Fix: ApplyLevels uses reflection + SetDirty instead of SerializedObject.Apply — preserves intra-scene component refs (Button, Image, TMP) during scene save
 ## Milestone 3: Polish + Monetization + Launch v1.0
-- [ ] Audio system (SFX: tap, crown place, dot place, undo, victory; BGM: loopable ambient)
+- [x] Audio system — AudioManager.cs singleton (DontDestroyOnLoad), SFXType.cs enum, AudioManagerSetup.cs editor tool
+  - [x] 8-source SFX pool (no GC), dedicated BGM AudioSource with 1s fade-in coroutine
+  - [x] PlayTap/AutoDot/ButtonTap/InvalidPlace/Victory; tap+autodot+invalidplace each random-pick between main+variant clip
+  - [x] PlayAutoDot: volume 0.4×, pitch random 0.9–1.1 for rapid-fire feel
+  - [x] SetSFXVolume/SetBGMVolume/SetSFXMute/SetBGMMute persisted via PlayerPrefs
+  - [x] OnApplicationPause + OnApplicationFocus BGM pause/resume for mobile
+  - [x] BrainBattle/Setup Audio Manager editor tool — creates [AudioManager]+[BGMSource] GO in active scene
 - [ ] Haptic feedback (light tap on cell, medium on crown place, strong on victory)
 - [ ] Animations (crown pop-in scale tween, victory panel slide-up, star fill sequential)
 - [ ] Splash screen + app icon (1024x1024 master)

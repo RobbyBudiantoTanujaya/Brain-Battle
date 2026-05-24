@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using BrainBattle.Shared;
 
 namespace BrainBattle.Shared.UI
 {
@@ -25,7 +26,7 @@ namespace BrainBattle.Shared.UI
 
         private void GoToLevelSelect()
         {
-            // Clear pending level so LevelSelect starts fresh (not the game scene).
+            AudioManager.Instance?.PlayButtonTap();
             PlayerPrefs.DeleteKey("Kings_PendingLevel");
             PlayerPrefs.Save();
             SceneManager.LoadScene(LevelSelectScene);

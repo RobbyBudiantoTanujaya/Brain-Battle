@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
 using BrainBattle.Kings;
+using BrainBattle.Shared;
 using BrainBattle.Shared.UI;
 
 namespace BrainBattle.Shared.UI
@@ -58,7 +59,11 @@ namespace BrainBattle.Shared.UI
                 {
                     if (_tabButtons[i] == null) continue;
                     int idx = i;
-                    _tabButtons[i].onClick.AddListener(() => SelectTab(idx));
+                    _tabButtons[i].onClick.AddListener(() =>
+                    {
+                        AudioManager.Instance?.PlayButtonTap();
+                        SelectTab(idx);
+                    });
                 }
             }
             if (_playButton != null)
@@ -80,6 +85,7 @@ namespace BrainBattle.Shared.UI
 
         private void Start()
         {
+            AudioManager.Instance?.PlayBGM();
             BuildDiffPools();
             SelectTab(0);
         }
@@ -229,6 +235,7 @@ namespace BrainBattle.Shared.UI
 
         private void OnPlay()
         {
+            AudioManager.Instance?.PlayButtonTap();
             if (_diffPools == null || _activeTab >= _diffPools.Length) return;
             int[] pool   = _diffPools[_activeTab];
             int   target = pool.Length > 0 ? pool[0] : 1;

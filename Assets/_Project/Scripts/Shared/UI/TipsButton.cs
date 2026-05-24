@@ -38,6 +38,7 @@ namespace BrainBattle.Shared
 
         private void OnClick()
         {
+            AudioManager.Instance?.PlayButtonTap();
             if (Time.time - _lastTipTime < CooldownSeconds)
             {
                 ShowPanel(CooldownText);

@@ -5,6 +5,7 @@ using BrainBattle.Core.Engine;
 using BrainBattle.Core.Models;
 using BrainBattle.Games.Kings.UI;
 using BrainBattle.Kings;
+using BrainBattle.Shared;
 
 namespace BrainBattle.Games.Kings.Logic
 {
@@ -267,6 +268,9 @@ namespace BrainBattle.Games.Kings.Logic
             if (newState == CellState.Crown) _moveCount++;
             _gridRenderer.UpdateCell(row, col, newState);
 
+            if (newState == CellState.Dot || newState == CellState.Crown)
+                AudioManager.Instance?.PlayTap();
+
             if (currentState == CellState.Crown)
                 RemoveAutoX(row, col);
             else if (newState == CellState.Crown)
@@ -288,6 +292,9 @@ namespace BrainBattle.Games.Kings.Logic
             if (targetState == CellState.Crown) _moveCount++;
             _gridRenderer.UpdateCell(row, col, targetState);
 
+            if (targetState == CellState.Dot)   AudioManager.Instance?.PlayAutoDot();
+            else if (targetState == CellState.Crown) AudioManager.Instance?.PlayTap();
+
             if (targetState == CellState.Crown)
                 ApplyAutoX(row, col);
 
@@ -301,6 +308,7 @@ namespace BrainBattle.Games.Kings.Logic
             var result = ConstraintValidator.ValidateMove(_currentGrid, row, col, newState);
             if (!result.IsValid)
             {
+                AudioManager.Instance?.PlayInvalidPlace();
                 OnConflictDetected?.Invoke(result.ConflictPositions);
                 return;
             }
@@ -318,6 +326,7 @@ namespace BrainBattle.Games.Kings.Logic
             _timerActive = false;
             _gameActive  = false;
 
+            AudioManager.Instance?.PlayVictory();
             OnWin?.Invoke();
             OnGameComplete?.Invoke(_timerOffset, _moveCount);
 
@@ -380,6 +389,7 @@ namespace BrainBattle.Games.Kings.Logic
             _currentGrid.SetCellState(row, col, CellState.Dot);
             _gridRenderer.UpdateCell(row, col, CellState.Dot);
             autoSet.Add(new Vector2Int(col, row));
+            AudioManager.Instance?.PlayAutoDot();
         }
 
         private void RemoveAutoX(int crownRow, int crownCol)

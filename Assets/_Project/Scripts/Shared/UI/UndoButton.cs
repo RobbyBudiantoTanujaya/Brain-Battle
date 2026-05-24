@@ -33,7 +33,11 @@ namespace BrainBattle.Shared
                 _gameManager.OnUndoStackChanged -= OnUndoStackChanged;
         }
 
-        private void OnClick() => _gameManager.DoUndo();
+        private void OnClick()
+        {
+            AudioManager.Instance?.PlayButtonTap();
+            _gameManager.DoUndo();
+        }
 
         private void OnUndoStackChanged(bool hasUndo) => SetState(hasUndo);
 

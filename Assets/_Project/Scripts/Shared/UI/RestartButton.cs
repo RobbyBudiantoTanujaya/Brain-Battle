@@ -32,6 +32,7 @@ namespace BrainBattle.Shared
 
         private void OnClick()
         {
+            AudioManager.Instance?.PlayButtonTap();
             if (_gameManager.MoveCount > 0)
                 _confirmPanel.SetActive(true);
             else
