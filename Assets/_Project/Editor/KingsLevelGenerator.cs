@@ -13,7 +13,6 @@ namespace BrainBattle.Kings.Editor
     public static class KingsLevelGenerator
     {
         private const string OutputPath = "Assets/_Project/ScriptableObjects/Kings/Levels";
-        private const int NewLevelsPerCategory = 1;
 
         private static readonly (string oldName, string newName)[] LegacyRenames =
         {
@@ -24,12 +23,11 @@ namespace BrainBattle.Kings.Editor
             ("KingsLevel_05_10x10", "Kings_Impossible_01"),
         };
 
-        [MenuItem("BrainBattle/Generate Kings Levels")]
-        public static void GenerateLevels()
+        public static void GenerateLevels(int countPerCategory)
         {
             EnsureDirectory(OutputPath);
 
-            LevelSpec[] newLevels = BuildNewLevels();
+            LevelSpec[] newLevels = BuildNewLevels(countPerCategory);
 
             int generated = 0;
             var totalWatch = Stopwatch.StartNew();
@@ -176,9 +174,9 @@ namespace BrainBattle.Kings.Editor
             return string.Join("|", qparts) + "@" + string.Join("|", cells.ToArray());
         }
 
-        // Builds 6 new levels per category (Beginner/Expert/Impossible) on top of what already exists.
-        // Seeds are time-derived so each run produces different content.
-        private static LevelSpec[] BuildNewLevels()
+        // Builds countPerCategory new levels per difficulty (Beginner/Expert/Impossible)
+        // on top of what already exists. Seeds are time-derived so each run produces different content.
+        private static LevelSpec[] BuildNewLevels(int countPerCategory)
         {
             int beginnerMax  = MaxDifficultyNumber("Beginner");
             int expertMax    = MaxDifficultyNumber("Expert");
@@ -191,31 +189,31 @@ namespace BrainBattle.Kings.Editor
             // XOR with a large prime and per-difficulty salt to avoid collisions between categories.
             int baseSeed = unchecked((int)(DateTime.Now.Ticks >> 8));
 
-            var levels = new List<LevelSpec>(NewLevelsPerCategory * 3);
+            var levels = new List<LevelSpec>(countPerCategory * 3);
 
-            // 6 new Beginner levels — alternate 4x4 / 5x5
-            for (int i = 0; i < NewLevelsPerCategory; i++)
+            // Beginner levels — alternate 4x4 / 5x5
+            for (int i = 0; i < countPerCategory; i++)
             {
                 int diffNum = beginnerMax + i + 1;
-                int size = (diffNum % 2 == 1) ? 4 : 5;
-                int seed = unchecked(baseSeed ^ (10000 + diffNum * 97));
+                int size    = (diffNum % 2 == 1) ? 4 : 5;
+                int seed    = unchecked(baseSeed ^ (10000 + diffNum * 97));
                 Add(levels, ref levelNumber, "Beginner", diffNum, size, seed);
             }
 
-            // 6 new Expert levels — alternate 6x6 / 8x8
-            for (int i = 0; i < NewLevelsPerCategory; i++)
+            // Expert levels — alternate 6x6 / 8x8
+            for (int i = 0; i < countPerCategory; i++)
             {
                 int diffNum = expertMax + i + 1;
-                int size = (diffNum % 2 == 1) ? 6 : 8;
-                int seed = unchecked(baseSeed ^ (20000 + diffNum * 97));
+                int size    = (diffNum % 2 == 1) ? 6 : 8;
+                int seed    = unchecked(baseSeed ^ (20000 + diffNum * 97));
                 Add(levels, ref levelNumber, "Expert", diffNum, size, seed);
             }
 
-            // 6 new Impossible levels — all 10x10
-            for (int i = 0; i < NewLevelsPerCategory; i++)
+            // Impossible levels — all 10x10
+            for (int i = 0; i < countPerCategory; i++)
             {
                 int diffNum = impossibleMax + i + 1;
-                int seed = unchecked(baseSeed ^ (30000 + diffNum * 97));
+                int seed    = unchecked(baseSeed ^ (30000 + diffNum * 97));
                 Add(levels, ref levelNumber, "Impossible", diffNum, 10, seed);
             }
 
