@@ -19,7 +19,7 @@ namespace BrainBattle.Games.Kings.UI
             int   seconds = (int)t % 60;
 
             if (_timerText     != null) _timerText.text     = $"{minutes:00}:{seconds:00}";
-            if (_moveCountText != null) _moveCountText.text = $"{_gameManager.MoveCount} moves";
+            if (_moveCountText != null) _moveCountText.text = $"{_gameManager.MoveCount} count";
         }
     }
 }

@@ -101,16 +101,11 @@ namespace BrainBattle.Editor
                 if (go != null) Undo.DestroyObjectImmediate(go);
             }
 
-            // Force-recreate font assets so they're rebuilt with the latest source fonts.
+            // Reset cached references — font creation functions reuse valid existing assets
+            // or recreate only if the atlas texture is broken/missing.
             _hudIconFont       = null;
             _bodyFont          = null;
             _roundedRectSprite = null;
-            const string FontPath     = "Assets/_Project/Resources/Fonts/HUDIcons SDF.asset";
-            const string BodyFontPath = "Assets/_Project/Resources/Fonts/Outfit SDF.asset";
-            if (!string.IsNullOrEmpty(AssetDatabase.AssetPathToGUID(FontPath)))
-                AssetDatabase.DeleteAsset(FontPath);
-            if (!string.IsNullOrEmpty(AssetDatabase.AssetPathToGUID(BodyFontPath)))
-                AssetDatabase.DeleteAsset(BodyFontPath);
         }
 
         // ── Top-level creators ─────────────────────────────────────────────────────
@@ -411,7 +406,7 @@ namespace BrainBattle.Editor
             rt.pivot     = new Vector2(0.5f, 0f);
             rt.offsetMin = new Vector2(0f,   0f);
             rt.offsetMax = new Vector2(0f, 120f);
-            r.HudGO.AddComponent<Image>().color = new Color(0.05f, 0.05f, 0.1f, 1f);
+            r.HudGO.AddComponent<Image>().color = new Color(0.05f, 0.05f, 0.1f, 0.88f);
             r.HudGO.AddComponent<HUDController>();
 
             var hud = r.HudGO.transform;
@@ -449,18 +444,18 @@ namespace BrainBattle.Editor
             var pink = new Color(1f,    0.18f, 0.47f, 1f);   // #ff2d78 — tips accent
 
             // 1. Undo
-            r.UndoButtonGO = MakeHudBtn("UndoButton",   row, "UNDO",    new Color(1f, 1f, 1f, 0.05f), grey);
+            r.UndoButtonGO = MakeHudBtn("UndoButton",   row, "UNDO",    new Color(1f, 1f, 1f, 0.12f), grey);
             r.UndoButtonGO.AddComponent<UndoButton>();
 
             // 2. Restart
-            r.HudRestartGO = MakeHudBtn("RestartButton", row, "RESTART", new Color(1f, 1f, 1f, 0.05f), grey);
+            r.HudRestartGO = MakeHudBtn("RestartButton", row, "RESTART", new Color(1f, 1f, 1f, 0.12f), grey);
             r.HudRestartGO.AddComponent<RestartButton>();
 
             // 3. Move counter — pink hero element, no button interaction
             r.HudMoveText = MakeHudMoveCounter("MoveCounter", row);
 
             // 4. Menu
-            r.MenuButtonGO = MakeHudBtn("MenuButton",  row, "MENU",    new Color(1f, 1f, 1f, 0.05f), grey);
+            r.MenuButtonGO = MakeHudBtn("MenuButton",  row, "MENU",    new Color(1f, 1f, 1f, 0.12f), grey);
             r.MenuButtonGO.AddComponent<MenuButton>();
 
             // 5. Tips — pink accent
@@ -678,9 +673,17 @@ namespace BrainBattle.Editor
 
             if (_hudIconFont != null) return _hudIconFont;
 
-            // Re-use previously saved asset (survives builder re-runs).
-            _hudIconFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(AssetPath);
-            if (_hudIconFont != null) return _hudIconFont;
+            var existingIcon = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(AssetPath);
+            bool isIconValid = false;
+            try { isIconValid = existingIcon != null && existingIcon.atlasTextures != null
+                             && existingIcon.atlasTextures.Length > 0 && existingIcon.atlasTextures[0] != null; }
+            catch { }
+
+            if (isIconValid) { _hudIconFont = existingIcon; return _hudIconFont; }
+
+            // Existing asset is missing or has broken atlas — delete and recreate.
+            if (!string.IsNullOrEmpty(AssetDatabase.AssetPathToGUID(AssetPath)))
+                AssetDatabase.DeleteAsset(AssetPath);
 
             // Prefer Segoe UI Symbol (ships with Windows 7+) — it covers Arrows, Dingbats, and
             // Miscellaneous Symbols, giving us ↩ ↺ ☰ ✦.  We copy the TTF into the project as a
@@ -745,10 +748,7 @@ namespace BrainBattle.Editor
             });
 
             System.IO.Directory.CreateDirectory("Assets/_Project/Resources/Fonts");
-            AssetDatabase.CreateAsset(fa, AssetPath);
-            AssetDatabase.SaveAssets();
-
-            _hudIconFont = fa;
+            _hudIconFont = SaveFontAssetWithSubAssets(fa, AssetPath);
             Debug.Log($"[KingsSceneBuilder] Created {AssetPath}");
             return _hudIconFont;
         }
@@ -766,8 +766,17 @@ namespace BrainBattle.Editor
 
             if (_bodyFont != null) return _bodyFont;
 
-            _bodyFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(AssetPath);
-            if (_bodyFont != null) return _bodyFont;
+            var existing = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(AssetPath);
+            bool isValid = false;
+            try { isValid = existing != null && existing.atlasTextures != null
+                         && existing.atlasTextures.Length > 0 && existing.atlasTextures[0] != null; }
+            catch { }
+
+            if (isValid) { _bodyFont = existing; return _bodyFont; }
+
+            // Existing asset is missing or has broken atlas — delete and recreate.
+            if (!string.IsNullOrEmpty(AssetDatabase.AssetPathToGUID(AssetPath)))
+                AssetDatabase.DeleteAsset(AssetPath);
 
             // Ensure font data is embedded so TMP can read the glyph data.
             AssetDatabase.ImportAsset(TtfPath, ImportAssetOptions.ForceUpdate);
@@ -794,14 +803,59 @@ namespace BrainBattle.Editor
 
             fa.atlasPopulationMode = AtlasPopulationMode.Dynamic;
             fa.name = "Outfit SDF";
-
             System.IO.Directory.CreateDirectory("Assets/_Project/Resources/Fonts");
-            AssetDatabase.CreateAsset(fa, AssetPath);
-            AssetDatabase.SaveAssets();
-
-            _bodyFont = fa;
+            _bodyFont = SaveFontAssetWithSubAssets(fa, AssetPath);
             Debug.Log($"[KingsSceneBuilder] Created {AssetPath}");
             return _bodyFont;
+        }
+
+        // Saves a TMP_FontAsset plus its atlas textures and material as sub-assets,
+        // then wires m_AtlasTextures via SerializedObject so the reference is stable
+        // on disk and survives domain reload.
+        static TMP_FontAsset SaveFontAssetWithSubAssets(TMP_FontAsset fa, string assetPath)
+        {
+            AssetDatabase.CreateAsset(fa, assetPath);
+
+            // Add atlas textures and material as named sub-assets.
+            if (fa.atlasTextures != null)
+                foreach (var t in fa.atlasTextures)
+                    if (t != null) { t.name = fa.name + " Atlas"; AssetDatabase.AddObjectToAsset(t, fa); }
+            if (fa.material != null)
+                { fa.material.name = fa.name + " Material"; AssetDatabase.AddObjectToAsset(fa.material, fa); }
+
+            AssetDatabase.SaveAssets();
+            // ForceUpdate re-resolves sub-asset FileIDs on disk.
+            AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
+
+            // Reload from disk and wire m_AtlasTextures to the saved sub-asset texture
+            // via SerializedObject.  Without this step, the on-disk reference still points
+            // to the old in-memory instanceID (which is destroyed after domain reload).
+            var loaded = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(assetPath);
+            Texture2D savedAtlas = null;
+            Material  savedMat   = null;
+            foreach (var obj in AssetDatabase.LoadAllAssetsAtPath(assetPath))
+            {
+                if (obj is Texture2D tex && savedAtlas == null) savedAtlas = tex;
+                if (obj is Material   mat && savedMat   == null) savedMat   = mat;
+            }
+
+            if (loaded != null && savedAtlas != null)
+            {
+                var so        = new SerializedObject(loaded);
+                var atlasProp = so.FindProperty("m_AtlasTextures");
+                if (atlasProp != null)
+                {
+                    atlasProp.arraySize = 1;
+                    atlasProp.GetArrayElementAtIndex(0).objectReferenceValue = savedAtlas;
+                }
+                var matProp = so.FindProperty("m_Material");
+                if (matProp != null && savedMat != null) matProp.objectReferenceValue = savedMat;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                AssetDatabase.SaveAssets();
+            }
+            else Debug.LogWarning($"[KingsSceneBuilder] Could not wire atlas sub-asset for {assetPath}.");
+
+            return AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(assetPath);
         }
 
         // Shared palette — sourced from DesignSystem; BtnBg has no matching token.
