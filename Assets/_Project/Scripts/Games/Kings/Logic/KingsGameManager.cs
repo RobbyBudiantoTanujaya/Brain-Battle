@@ -264,7 +264,7 @@ namespace BrainBattle.Games.Kings.Logic
             FireUndoStackChanged();
 
             _currentGrid.SetCellState(row, col, newState);
-            _moveCount++;
+            if (newState == CellState.Crown) _moveCount++;
             _gridRenderer.UpdateCell(row, col, newState);
 
             if (currentState == CellState.Crown)
@@ -285,7 +285,7 @@ namespace BrainBattle.Games.Kings.Logic
             if (current == CellState.Crown) return;
 
             _currentGrid.SetCellState(row, col, targetState);
-            _moveCount++;
+            if (targetState == CellState.Crown) _moveCount++;
             _gridRenderer.UpdateCell(row, col, targetState);
 
             if (targetState == CellState.Crown)
