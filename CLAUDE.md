@@ -246,6 +246,7 @@ Read tokens in code (e.g., `BuildCells()`, `Start()`), not in `[SerializeField]`
 1. **Never fix SerializeField wiring by hand** — always run `BrainBattle → Build Kings Scene` or `Build Level Select Scene`. If a field is missing from the builder, add it to the builder first.
 2. **Never run the wrong builder** — KingsSceneBuilder owns SampleScene; LevelSelectSceneBuilder owns LevelSelect. They are not interchangeable.
 3. **Never edit both scenes in one task** — confirm scope before starting if a task might touch both. Ask the user first.
+3a. **Never use `manage_scene(action="load")` or `manage_scene(action="save")` via MCP** without explicit user instruction — loading a scene switches the editor's active scene without warning; saving writes to disk permanently. MCP scene/GO changes that are not explicitly requested must remain in-memory only (no save). If a scene inspection is needed, ask the user to open it first.
 4. **Never add a SerializeField to a wired script** without re-running the scene builder — the new field will be null at runtime.
 5. **Never hardcode a hex color or pixel size** that has a DesignSystem token. Use `DesignSystem.X` at call time.
 6. **Never change logic when the task is visual** (and vice versa). Visual = rendering, colors, sizes, layout. Logic = game rules, constraints, state transitions.
@@ -381,6 +382,11 @@ VictoryPanel → "Restart"
 | UndoButton always greyed out       | `OnUndoStackChanged` event not subscribed               | Re-run builder; UndoButton subscribes in OnEnable/OnDisable. |
 | LevelLoader empty in device build  | `_allLevels` not populated before build                 | Run `BrainBattle → Generate Kings Levels` then `Build Kings Scene` before building. |
 | LevelSelectController tabs null    | `_tabButtons` not wired; fallback by name used          | Re-run `Build Level Select Scene`. Fallback logs a warning. |
+| BGM silent on first scene (LevelSelect) | `AudioSource.isPlaying` reports `true` on a freshly created source with `clip=NULL` during Unity 6 boot — `PlayBGM()` guard saw `isPlaying=true` and returned early without ever assigning the clip | Fixed in `PlayBGM()`: guard is `if (_bgmSource.isPlaying && _bgmSource.clip == _bgm) return` — checks both playing AND correct clip. Never guard on `isPlaying` alone for BGM. |
+| BGM silent when game starts from SampleScene directly | `PlayBGM()` was only called from `LevelSelectController.Start()` — skipped entirely when entering via SampleScene | Fixed: `AudioManager` auto-starts BGM via `SceneManager.sceneLoaded` (fires on every scene load) + `RuntimeInitializeOnLoadMethod(AfterSceneLoad)` (fires on first scene). No individual controller needs to call `PlayBGM()`. |
+| Audio clips null / no SFX at all | `LoadClips()` called during `RuntimeInitializeOnLoadMethod(BeforeSceneLoad)` — audio engine not yet initialised, `Resources.Load<AudioClip>` returns null | Fixed: lazy loading via `EnsureClipsLoaded()` — clips are loaded the first time any `PlayXxx()` method is called (scene is active, engine ready). Never call `LoadClips()` in `Awake()` when using `BeforeSceneLoad` bootstrap. |
+| 2 AudioListener warnings in console | `AudioListener` added to `[AudioManager]` GO — conflicts with scene Camera's listener | `AudioManager` must NEVER add an `AudioListener`. Each scene provides exactly one via its Camera. |
+| BGM not resuming after scene transition | `sceneLoaded` not subscribed yet when first scene fires its event | `OnEnable()` subscribes before the first scene loads (fires synchronously in `AddComponent` during `BeforeSceneLoad`). `AfterSceneLoad` callback provides fallback for the first scene. |
 
 ---
 
@@ -408,6 +414,49 @@ Every time a new task arrives:
 - Namespace: `BrainBattle.Core`, `BrainBattle.Kings`, `BrainBattle.Shared`, `BrainBattle.Games.Kings.Logic/UI`
 - All files under `Assets/_Project/`
 - PlayerPrefs keys in use: `Kings_PendingLevel`, `Kings_Grid`, `Kings_Time`, `Kings_Moves`, `Kings_Level_{N}_Stars`, `Kings_TutorialSeen`
+
+## 11. AudioManager — Setup Rules & Gotchas
+
+**File**: `Assets/_Project/Scripts/Shared/Audio/AudioManager.cs`
+**Namespace**: `BrainBattle.Shared`
+**Pattern**: DontDestroyOnLoad singleton, auto-created via `RuntimeInitializeOnLoadMethod`.
+
+### How it boots
+| Phase | Callback | What happens |
+|---|---|---|
+| Before first scene loads | `RuntimeInitializeOnLoadMethod(BeforeSceneLoad)` → `AutoCreate()` | Creates `[AudioManager]` GO, `Awake()` runs: settings loaded, 8-source SFX pool built, `[BGMSource]` child created |
+| After first scene loads | `RuntimeInitializeOnLoadMethod(AfterSceneLoad)` → `AutoStartBGM()` | Calls `PlayBGM()` — first scene BGM start |
+| Every subsequent scene load | `SceneManager.sceneLoaded` → `OnSceneLoaded()` | Calls `PlayBGM()` — idempotent, no-op if already playing correct clip |
+
+### Critical rules
+1. **Never call `LoadClips()` in `Awake()`** — during `BeforeSceneLoad` the audio engine is not yet initialised; `Resources.Load<AudioClip>` returns null silently. Always use lazy loading: `EnsureClipsLoaded()` called at the top of every `PlayXxx()` method.
+2. **Never guard `PlayBGM()` with `isPlaying` alone** — Unity 6 reports `isPlaying=true` on a freshly created `AudioSource` with no clip during certain boot scenarios. The correct guard is:
+   ```csharp
+   if (_bgmSource.isPlaying && _bgmSource.clip == _bgm) return;
+   ```
+3. **Never add `AudioListener` to the `[AudioManager]` GO** — each scene provides exactly one `AudioListener` via its Camera. Two listeners = console spam and unpredictable audio.
+4. **Never call `PlayBGM()` from individual scene controllers** — `AudioManager` manages BGM entirely through `sceneLoaded` + `AfterSceneLoad`. Calling it from `LevelSelectController.Start()` or `KingsGameManager.StartGame()` is redundant and was error-prone.
+5. **`PlayBGM()` is idempotent** — safe to call from anywhere; it does nothing if the correct BGM clip is already playing.
+6. **BGM fades in over 1 second** — uses `FadeBGMIn(1f)` coroutine with `Time.unscaledDeltaTime`. If BGM seems missing, check if fade just hasn't completed yet (it should be audible within ~0.2 s at low volume).
+
+### Audio clip paths (Resources)
+| Clip field | Path |
+|---|---|
+| `_bgm` | `audio/BGM/bgm` |
+| `_tapClip` | `audio/SFX/tap_dot` |
+| `_tapVariantClip` | `audio/SFX/tap_dot_variant` |
+| `_autoDotClip` | `audio/SFX/auto_dot` |
+| `_autoDotVariantClip` | `audio/SFX/auto_dot_variant` |
+| `_buttonTapClip` | `audio/SFX/button_tap` |
+| `_invalidPlaceClip` | `audio/SFX/invalid_place` |
+| `_invalidPlaceVariantClip` | `audio/SFX/invalid_place_variant` |
+| `_victoryClip` | `audio/SFX/victory_sound` |
+
+### Android-specific
+- BGM (`bgm.mp3`) must use `loadType: 2` (Streaming) on Android — set in `.meta` platform override. Decompress On Load causes memory/timeout issues on Android.
+- `m_ClearDynamicDataOnBuild: 0` in `TMP Settings.asset` — must be 0 or TMP font atlas is stripped from Android APK and all button text disappears.
+
+---
 
 ## Anti-Stuck Rules
 

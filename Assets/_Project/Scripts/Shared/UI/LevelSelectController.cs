@@ -85,7 +85,6 @@ namespace BrainBattle.Shared.UI
 
         private void Start()
         {
-            AudioManager.Instance?.PlayBGM();
             BuildDiffPools();
             SelectTab(0);
         }

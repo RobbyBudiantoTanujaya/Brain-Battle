@@ -1,10 +1,31 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace BrainBattle.Shared
 {
     public sealed class AudioManager : MonoBehaviour
     {
+        // ── Auto-bootstrap ─────────────────────────────────────────────────────────
+        // BeforeSceneLoad: creates the singleton before the first scene loads.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void AutoCreate()
+        {
+            if (Instance != null) return;
+            var go = new GameObject("[AudioManager]");
+            go.AddComponent<AudioManager>();
+            // DontDestroyOnLoad is called inside Awake.
+        }
+
+        // AfterSceneLoad: fires after the first scene is fully active — audio engine
+        // is guaranteed ready here, so BGM can start safely.
+        // sceneLoaded handles all subsequent scene transitions.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void AutoStartBGM()
+        {
+            Instance?.PlayBGM();
+        }
+
         private const int    PoolSize      = 8;
         private const string PrefSFXVolume = "Audio_SFXVolume";
         private const string PrefBGMVolume = "Audio_BGMVolume";
@@ -43,6 +64,7 @@ namespace BrainBattle.Shared
 
         private bool      _appIsPaused;
         private Coroutine _bgmFadeCoroutine;
+        private bool      _clipsLoaded;
 
         // ── MonoBehaviour ──────────────────────────────────────────────────────────
 
@@ -58,9 +80,26 @@ namespace BrainBattle.Shared
             DontDestroyOnLoad(gameObject);
 
             LoadSettings();
-            LoadClips();
             BuildPool();
             InitBGMSource();
+        }
+
+        private void OnEnable()
+        {
+            SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+
+        private void OnDisable()
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+
+        // Auto-start BGM whenever a scene finishes loading.
+        // Runs one frame after the scene is active, so the audio engine is ready.
+        // PlayBGM() is idempotent — if BGM is already playing it returns immediately.
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            PlayBGM();
         }
 
         private void OnApplicationPause(bool paused)
@@ -78,13 +117,14 @@ namespace BrainBattle.Shared
 
         // ── Public API ─────────────────────────────────────────────────────────────
 
-        public void PlayTap()          => PlaySFX(RandomPick(_tapClip, _tapVariantClip), 1f, 1f);
-        public void PlayButtonTap()    => PlaySFX(_buttonTapClip, 1f, 1f);
-        public void PlayInvalidPlace() => PlaySFX(RandomPick(_invalidPlaceClip, _invalidPlaceVariantClip), 1f, 1f);
-        public void PlayVictory()      => PlaySFX(_victoryClip, 1f, 1f);
+        public void PlayTap()          { EnsureClipsLoaded(); PlaySFX(RandomPick(_tapClip, _tapVariantClip), 1f, 1f); }
+        public void PlayButtonTap()    { EnsureClipsLoaded(); PlaySFX(_buttonTapClip, 1f, 1f); }
+        public void PlayInvalidPlace() { EnsureClipsLoaded(); PlaySFX(RandomPick(_invalidPlaceClip, _invalidPlaceVariantClip), 1f, 1f); }
+        public void PlayVictory()      { EnsureClipsLoaded(); PlaySFX(_victoryClip, 1f, 1f); }
 
         public void PlayAutoDot()
         {
+            EnsureClipsLoaded();
             AudioClip clip = RandomPick(_autoDotClip, _autoDotVariantClip);
             if (clip == null || _sfxMuted) return;
             var src = NextPooledSource();
@@ -96,8 +136,12 @@ namespace BrainBattle.Shared
 
         public void PlayBGM()
         {
+            EnsureClipsLoaded();
             if (_bgmSource == null || _bgm == null) return;
-            if (_bgmSource.isPlaying) return;
+            // Guard: only skip if the correct clip is already playing.
+            // Checking isPlaying alone is not reliable — Unity can report isPlaying=true
+            // on a newly created AudioSource with no clip in certain boot scenarios.
+            if (_bgmSource.isPlaying && _bgmSource.clip == _bgm) return;
 
             _bgmSource.clip   = _bgm;
             _bgmSource.loop   = true;
@@ -149,6 +193,16 @@ namespace BrainBattle.Shared
         }
 
         // ── Private: init ──────────────────────────────────────────────────────────
+
+        // Clips are loaded lazily on first Play call — not in Awake — because
+        // RuntimeInitializeOnLoadMethod(BeforeSceneLoad) runs before Unity's audio
+        // engine is fully initialised; Resources.Load returns null or unusable clips.
+        private void EnsureClipsLoaded()
+        {
+            if (_clipsLoaded) return;
+            _clipsLoaded = true;
+            LoadClips();
+        }
 
         private void LoadSettings()
         {

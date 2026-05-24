@@ -124,6 +124,11 @@
   - [x] SetSFXVolume/SetBGMVolume/SetSFXMute/SetBGMMute persisted via PlayerPrefs
   - [x] OnApplicationPause + OnApplicationFocus BGM pause/resume for mobile
   - [x] BrainBattle/Setup Audio Manager editor tool — creates [AudioManager]+[BGMSource] GO in active scene
+- [x] Fix: BGM silent on LevelSelect boot — Unity 6 reports `isPlaying=true` on fresh AudioSource with no clip; guard changed to `isPlaying && clip == _bgm`
+- [x] Fix: BGM not starting when game entered from SampleScene directly — `sceneLoaded` + `AfterSceneLoad` callbacks handle BGM auto-start on every scene; no controller needs to call `PlayBGM()`
+- [x] Fix: Audio clips null / no SFX — `LoadClips()` moved to lazy `EnsureClipsLoaded()` called on first `PlayXxx()` (audio engine ready by then); never call in `Awake()` during `BeforeSceneLoad`
+- [x] Fix: 2 AudioListener spam — removed AudioListener from AudioManager GO; each scene Camera provides its own
+- [x] AudioManager gotchas documented in CLAUDE.md §11
 - [ ] Haptic feedback (light tap on cell, medium on crown place, strong on victory)
 - [ ] Animations (crown pop-in scale tween, victory panel slide-up, star fill sequential)
 - [ ] Splash screen + app icon (1024x1024 master)
