@@ -34,22 +34,32 @@ namespace BrainBattle.Kings.Editor
             int generated = 0;
             var totalWatch = Stopwatch.StartNew();
 
-            foreach (var level in newLevels)
+            // Batch all asset creates/overwrites into one import cycle.
+            // Without this, Unity reimports after every SaveAsset call.
+            AssetDatabase.StartAssetEditing();
+            try
             {
-                var watch = Stopwatch.StartNew();
-
-                LevelData levelData = LevelGeneratorService.GenerateLevel(level.LevelNumber, level.Size, level.Difficulty, level.Seed);
-                if (levelData == null)
+                foreach (var level in newLevels)
                 {
-                    UnityEngine.Debug.LogError($"[KingsLevelGenerator] Failed to generate {level.AssetName} (Level {level.LevelNumber}, {level.Size}x{level.Size}, seed {level.Seed}).");
-                    continue;
+                    var watch = Stopwatch.StartNew();
+
+                    LevelData levelData = LevelGeneratorService.GenerateLevel(level.LevelNumber, level.Size, level.Difficulty, level.Seed);
+                    if (levelData == null)
+                    {
+                        UnityEngine.Debug.LogError($"[KingsLevelGenerator] Failed to generate {level.AssetName} (Level {level.LevelNumber}, {level.Size}x{level.Size}, seed {level.Seed}).");
+                        continue;
+                    }
+
+                    SaveAsset(levelData, level.AssetPath);
+
+                    watch.Stop();
+                    UnityEngine.Debug.Log($"[KingsLevelGenerator] Generated {level.AssetName} (Level {level.LevelNumber}, {level.Size}x{level.Size}, seed {level.Seed}) in {watch.ElapsedMilliseconds}ms → {level.AssetPath}");
+                    generated++;
                 }
-
-                SaveAsset(levelData, level.AssetPath);
-
-                watch.Stop();
-                UnityEngine.Debug.Log($"[KingsLevelGenerator] Generated {level.AssetName} (Level {level.LevelNumber}, {level.Size}x{level.Size}, seed {level.Seed}) in {watch.ElapsedMilliseconds}ms → {level.AssetPath}");
-                generated++;
+            }
+            finally
+            {
+                AssetDatabase.StopAssetEditing();
             }
 
             AssetDatabase.SaveAssets();
