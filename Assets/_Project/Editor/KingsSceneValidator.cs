@@ -46,7 +46,7 @@ namespace BrainBattle.Editor
                 CheckField(kgm, "_tutorialController", "KingsGameManager._tutorialController",  warnings); // optional
             });
 
-            CheckComponent<KingsSceneBootstrap> ("GameManager",     errors, warnings, b =>
+            CheckComponent<KingsSceneBootstrap> ("SceneBootstrap",  errors, warnings, b =>
             {
                 CheckField(b, "_levelLoader", "KingsSceneBootstrap._levelLoader", errors);
                 CheckField(b, "_gameManager", "KingsSceneBootstrap._gameManager", errors);
@@ -91,7 +91,8 @@ namespace BrainBattle.Editor
             });
 
             // ── TutorialController ────────────────────────────────────────────────
-            CheckComponent<TutorialController>("TutorialOverlay", errors, warnings, tc =>
+            // TutorialController lives on GameManager (not TutorialOverlay) — see SceneSetupGuide §7
+            CheckComponent<TutorialController>("GameManager",     errors, warnings, tc =>
             {
                 CheckField(tc, "_overlayPanel", "TutorialController._overlayPanel", errors);
             });

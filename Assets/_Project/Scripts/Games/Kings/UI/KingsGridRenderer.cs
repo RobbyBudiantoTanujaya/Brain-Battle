@@ -27,7 +27,9 @@ namespace BrainBattle.Games.Kings.UI
         private RectTransform       _self;
         private RectTransform       _gridPanel;
         private CellView[,]         _cellViews;
-        private float               _cellSize;
+        private float               _cellW;     // cell pixel width
+        private float               _cellH;     // cell pixel height  (≤ _cellW × MaxCellAspect)
+        private float               _cellSize;  // min(_cellW, _cellH) — used for icon sizing
         private HashSet<Vector2Int> _activeConflicts = new();
         private Coroutine           _conflictCoroutine;
 
@@ -100,38 +102,39 @@ namespace BrainBattle.Games.Kings.UI
 
             Canvas.ForceUpdateCanvases();
 
-            // Read from GridContainer's own rect. Works for both layouts:
-            //   • Stretch anchor (new): rect = canvas area above the HUD.
-            //   • Point anchor  (legacy scene): rect = SceneBuilder-assigned sizeDelta.
-            // We never mutate _self.sizeDelta here, so there is no feedback loop.
+            // Read from GridContainer's own rect — set by KingsSceneBuilder anchor band.
             Rect available = _self.rect;
             Debug.Log($"[KingsGridRenderer] _self.rect={available.size}");
-            // Side padding 16px each; top padding 16px; bottom is the HUD edge (no extra padding).
+
+            // Symmetric 16 px padding on all sides.
             float availableW = available.width  - _padding * 2f;
-            float availableH = available.height - _padding;
-            float usable = Mathf.Min(availableW, availableH);
-            if (usable <= 0f)
+            float availableH = available.height - _padding * 2f;
+
+            if (availableW <= 0f || availableH <= 0f)
             {
                 Debug.LogWarning("[KingsGridRenderer] _self.rect is zero — Canvas not yet laid out. Falling back to 320px.");
-                usable = 320f;
+                availableW = availableH = 320f - _padding * 2f;
             }
 
-            _cellSize = usable / grid.Size;
-            Debug.Log($"[KingsGridRenderer] usable={usable:F1}px  cellSize={_cellSize:F1}px");
+            // Cells are always square — use the smaller axis so the grid fits on screen.
+            _cellSize = Mathf.Min(availableW, availableH) / grid.Size;
+            _cellW    = _cellSize;
+            _cellH    = _cellSize;
+
+            Debug.Log($"[KingsGridRenderer] cellW={_cellW:F1}  cellH={_cellH:F1}  cellSize={_cellSize:F1}");
 
             _gridPanel                  = CreatePanel("GridPanel", _self);
             _gridPanel.anchorMin        = new Vector2(0.5f, 0.5f);
             _gridPanel.anchorMax        = new Vector2(0.5f, 0.5f);
             _gridPanel.pivot            = new Vector2(0.5f, 0.5f);
-            // Shift down half the top padding so the grid centers within the usable area,
-            // not the full GridContainer (which includes the top padding gap).
-            _gridPanel.anchoredPosition = new Vector2(0f, -_padding * 0.5f);
+            _gridPanel.anchoredPosition = Vector2.zero;
 
             BuildCells(grid);
 
-            float gridTotalSize  = _cellSize * grid.Size;
-            _gridPanel.sizeDelta = new Vector2(gridTotalSize, gridTotalSize);
-            Debug.Log($"[KingsGridRenderer] RenderGrid complete — gridPanel={gridTotalSize:F0}px, container={_self.rect.size}");
+            float gridTotalW = _cellW * grid.Size;
+            float gridTotalH = _cellH * grid.Size;
+            _gridPanel.sizeDelta = new Vector2(gridTotalW, gridTotalH);
+            Debug.Log($"[KingsGridRenderer] complete — grid={gridTotalW:F0}×{gridTotalH:F0}  container={available.size}");
         }
 
         public void UpdateCell(int row, int col, CellState state)
@@ -212,15 +215,13 @@ namespace BrainBattle.Games.Kings.UI
             foreach (var region in grid.Regions)
                 regionMap[region.RegionId] = region;
 
-            int   size = grid.Size;
-            float bt   = DesignSystem.BorderRegionThickness;   // thick: diff-region
-            float thin = DesignSystem.BorderCellThickness;     // thin:  same-region
-            Color darkColor = DesignSystem.BorderRegion;       // rgba(0,0,0,0.80)
-            Color thinColor = DesignSystem.BorderCell;         // rgba(0,0,0,0.20)
+            int   size      = grid.Size;
+            float bt        = DesignSystem.BorderRegionThickness;
+            float thin      = DesignSystem.BorderCellThickness;
+            Color darkColor = DesignSystem.BorderRegion;
+            Color thinColor = DesignSystem.BorderCell;
 
-            // ── Pass 1: cells — each is a simple full-size colored rect ───────────
-            // No insets, no DarkBg overflow. Render order issues are impossible here
-            // because borders are added in a separate pass AFTER all cells.
+            // ── Pass 1: cells ─────────────────────────────────────────────────────
             for (int r = 0; r < size; r++)
             {
                 for (int c = 0; c < size; c++)
@@ -233,17 +234,15 @@ namespace BrainBattle.Games.Kings.UI
                         ? region.RegionColor
                         : Color.HSVToRGB((rid * 0.13f) % 1f, 0.45f, 0.85f);
 
-                    // Container — hit area + coordinate origin. No Image component.
                     var cellGo = new GameObject($"Cell_{r}_{c}", typeof(RectTransform));
                     var rt     = cellGo.GetComponent<RectTransform>();
                     rt.SetParent(_gridPanel, false);
                     rt.anchorMin        = new Vector2(0f, 1f);
                     rt.anchorMax        = new Vector2(0f, 1f);
                     rt.pivot            = new Vector2(0f, 1f);
-                    rt.anchoredPosition = new Vector2(c * _cellSize, -r * _cellSize);
-                    rt.sizeDelta        = new Vector2(_cellSize, _cellSize);
+                    rt.anchoredPosition = new Vector2(c * _cellW, -r * _cellH);
+                    rt.sizeDelta        = new Vector2(_cellW, _cellH);
 
-                    // Background — fills entire cell with region color.
                     var bgGo  = new GameObject("Bg", typeof(RectTransform), typeof(Image));
                     var bgRt  = bgGo.GetComponent<RectTransform>();
                     bgRt.SetParent(rt, false);
@@ -253,9 +252,8 @@ namespace BrainBattle.Games.Kings.UI
                     bgRt.offsetMax = Vector2.zero;
                     var bgImg           = bgGo.GetComponent<Image>();
                     bgImg.color         = regionColor;
-                    bgImg.raycastTarget = true;  // must be true — GraphicRaycaster needs at least one hittable Image per cell
+                    bgImg.raycastTarget = true;
 
-                    // Icon — centered inside the cell.
                     var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
                     var iconRt = iconGo.GetComponent<RectTransform>();
                     iconRt.SetParent(rt, false);
@@ -281,39 +279,35 @@ namespace BrainBattle.Games.Kings.UI
                 }
             }
 
-            // ── Pass 2: vertical internal borders (between columns) ───────────────
-            // Placed AFTER all cells → always rendered on top. No render-order issues.
+            // ── Pass 2: vertical internal borders ────────────────────────────────
             for (int r = 0; r < size; r++)
-            {
                 for (int c = 0; c < size - 1; c++)
                 {
                     bool diff = grid.GetCell(r, c).RegionId != grid.GetCell(r, c + 1).RegionId;
                     CreateBorderLine(_gridPanel,
-                        center:   new Vector2((c + 1) * _cellSize, -(r + 0.5f) * _cellSize),
-                        size:     new Vector2(diff ? bt : thin, _cellSize),
-                        color:    diff ? darkColor : thinColor);
+                        new Vector2((c + 1) * _cellW,       -(r + 0.5f) * _cellH),
+                        new Vector2(diff ? bt : thin, _cellH),
+                        diff ? darkColor : thinColor);
                 }
-            }
 
-            // ── Pass 3: horizontal internal borders (between rows) ────────────────
+            // ── Pass 3: horizontal internal borders ──────────────────────────────
             for (int r = 0; r < size - 1; r++)
-            {
                 for (int c = 0; c < size; c++)
                 {
                     bool diff = grid.GetCell(r, c).RegionId != grid.GetCell(r + 1, c).RegionId;
                     CreateBorderLine(_gridPanel,
-                        center:   new Vector2((c + 0.5f) * _cellSize, -(r + 1) * _cellSize),
-                        size:     new Vector2(_cellSize, diff ? bt : thin),
-                        color:    diff ? darkColor : thinColor);
+                        new Vector2((c + 0.5f) * _cellW,    -(r + 1) * _cellH),
+                        new Vector2(_cellW, diff ? bt : thin),
+                        diff ? darkColor : thinColor);
                 }
-            }
 
             // ── Pass 4: outer border frame ────────────────────────────────────────
-            float gs = _cellSize * size;
-            CreateBorderLine(_gridPanel, new Vector2(gs * 0.5f, bt * 0.5f),         new Vector2(gs + bt, bt), darkColor); // top
-            CreateBorderLine(_gridPanel, new Vector2(gs * 0.5f, -gs - bt * 0.5f),   new Vector2(gs + bt, bt), darkColor); // bottom
-            CreateBorderLine(_gridPanel, new Vector2(-bt * 0.5f, -gs * 0.5f),       new Vector2(bt, gs + bt), darkColor); // left
-            CreateBorderLine(_gridPanel, new Vector2(gs + bt * 0.5f, -gs * 0.5f),   new Vector2(bt, gs + bt), darkColor); // right
+            float gsW = _cellW * size;
+            float gsH = _cellH * size;
+            CreateBorderLine(_gridPanel, new Vector2(gsW * 0.5f,       bt * 0.5f),       new Vector2(gsW + bt, bt),       darkColor);
+            CreateBorderLine(_gridPanel, new Vector2(gsW * 0.5f,      -gsH - bt * 0.5f), new Vector2(gsW + bt, bt),       darkColor);
+            CreateBorderLine(_gridPanel, new Vector2(-bt * 0.5f,      -gsH * 0.5f),      new Vector2(bt, gsH + bt),       darkColor);
+            CreateBorderLine(_gridPanel, new Vector2(gsW + bt * 0.5f, -gsH * 0.5f),      new Vector2(bt, gsH + bt),       darkColor);
         }
 
         /// <summary>

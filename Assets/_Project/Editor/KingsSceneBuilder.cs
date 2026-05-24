@@ -20,6 +20,16 @@ namespace BrainBattle.Editor
         [MenuItem("BrainBattle/Build Kings Scene")]
         static void Build()
         {
+            // Builder must run in Edit mode — components' Awake() fire in Play mode
+            // and NullRef before WireAll has a chance to assign references.
+            if (EditorApplication.isPlaying)
+            {
+                EditorApplication.ExitPlaymode();
+                EditorUtility.DisplayDialog("Build Kings Scene",
+                    "Play Mode stopped. Wait for it to exit, then run Build Kings Scene again.", "OK");
+                return;
+            }
+
             if (!ConfirmRebuild()) return;
 
             Undo.SetCurrentGroupName("Build Kings Scene");
@@ -44,10 +54,23 @@ namespace BrainBattle.Editor
 
             WireAll(r);
 
+            // Apply Outfit body font to every TMP in the scene, then restore
+            // the icon font on the star-rating label (needs special Unicode glyphs).
+            var bodyFont = GetOrCreateBodyFont();
+            if (bodyFont != null)
+            {
+                foreach (var tmp in r.Canvas.GetComponentsInChildren<TextMeshProUGUI>(true))
+                    tmp.font = bodyFont;
+            }
+            var iconFont = GetOrCreateHudIconFont();
+            if (iconFont != null && r.VPStarRatingText != null)
+                r.VPStarRatingText.font = iconFont;
+
             Undo.CollapseUndoOperations(undoGroup);
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
-            EditorSceneManager.SaveOpenScenes();
+            if (!EditorApplication.isPlaying)
+                EditorSceneManager.SaveOpenScenes();
 
             Selection.activeGameObject = r.Canvas;
             Debug.Log("[KingsSceneBuilder] Kings scene built and saved. All references, sprites, and level data auto-assigned — no manual steps required.");
@@ -77,6 +100,17 @@ namespace BrainBattle.Editor
                 var go = GameObject.Find(n);
                 if (go != null) Undo.DestroyObjectImmediate(go);
             }
+
+            // Force-recreate font assets so they're rebuilt with the latest source fonts.
+            _hudIconFont       = null;
+            _bodyFont          = null;
+            _roundedRectSprite = null;
+            const string FontPath     = "Assets/_Project/Resources/Fonts/HUDIcons SDF.asset";
+            const string BodyFontPath = "Assets/_Project/Resources/Fonts/Outfit SDF.asset";
+            if (!string.IsNullOrEmpty(AssetDatabase.AssetPathToGUID(FontPath)))
+                AssetDatabase.DeleteAsset(FontPath);
+            if (!string.IsNullOrEmpty(AssetDatabase.AssetPathToGUID(BodyFontPath)))
+                AssetDatabase.DeleteAsset(BodyFontPath);
         }
 
         // ── Top-level creators ─────────────────────────────────────────────────────
@@ -91,7 +125,7 @@ namespace BrainBattle.Editor
 
             var scaler                 = go.AddComponent<CanvasScaler>();
             scaler.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080f, 1920f);
+            scaler.referenceResolution = new Vector2(1170f, 2532f);
             scaler.matchWidthOrHeight  = 0.5f;
 
             go.AddComponent<GraphicRaycaster>();
@@ -173,13 +207,14 @@ namespace BrainBattle.Editor
             r.GridContainer = MakeUIGO("GridContainer", r.Canvas.transform);
             r.GridContainer.AddComponent<KingsGridRenderer>();
 
-            // Stretch to fill the canvas between the top TimerBar and the bottom HUD.
+            // Full canvas minus HUD: offsetMin.y = 88 keeps the bottom edge flush
+            // with the top of the HUD bar.  offsetMax = zero = canvas top.
             var rt       = r.GridContainer.GetComponent<RectTransform>();
-            rt.anchorMin = Vector2.zero;
-            rt.anchorMax = Vector2.one;
+            rt.anchorMin = new Vector2(0f, 0f);
+            rt.anchorMax = new Vector2(1f, 1f);
             rt.pivot     = new Vector2(0.5f, 0.5f);
-            rt.offsetMin = new Vector2(0f,  DesignSystem.HUDHeight);       // bottom inset = HUD height
-            rt.offsetMax = new Vector2(0f, -DesignSystem.TimerBarHeight);  // top    inset = TimerBar height
+            rt.offsetMin = new Vector2(0f, 120f);   // bottom = top of HUD
+            rt.offsetMax = new Vector2(0f,   0f);  // top    = canvas top
         }
 
         static void CreateTutorialOverlay(Refs r)
@@ -287,10 +322,12 @@ namespace BrainBattle.Editor
             Anchor(title, 0.05f, 0.82f, 0.95f, 0.96f);
 
             // ── Star rating ───────────────────────────────────────────────────────
-            r.VPStarRatingText           = MakeTMP("StarRatingText", content, "★★★");
+            r.VPStarRatingText           = MakeTMP("StarRatingText", content, "◆◆◆");
             r.VPStarRatingText.alignment = TextAlignmentOptions.Center;
             r.VPStarRatingText.fontSize  = 96f;
             r.VPStarRatingText.color     = PinkAccent;
+            var starFont = GetOrCreateHudIconFont();
+            if (starFont != null) r.VPStarRatingText.font = starFont;
             Anchor(r.VPStarRatingText, 0.05f, 0.68f, 0.95f, 0.84f);
 
             // ── Time ──────────────────────────────────────────────────────────────
@@ -367,54 +404,134 @@ namespace BrainBattle.Editor
         static void CreateHUD(Refs r)
         {
             r.HudGO = MakeUIGO("HUD", r.Canvas.transform);
-            var rt              = r.HudGO.GetComponent<RectTransform>();
-            rt.anchorMin        = new Vector2(0f, 0f);
-            rt.anchorMax        = new Vector2(1f, 0f);
-            rt.pivot            = new Vector2(0.5f, 0f);
-            rt.anchoredPosition = Vector2.zero;
-            rt.sizeDelta        = new Vector2(0f, DesignSystem.HUDHeight);
-            r.HudGO.AddComponent<Image>().color = NavyBg;
+            var rt       = r.HudGO.GetComponent<RectTransform>();
+            // Fixed 120 px bar anchored to the canvas bottom edge.
+            rt.anchorMin = new Vector2(0f, 0f);
+            rt.anchorMax = new Vector2(1f, 0f);
+            rt.pivot     = new Vector2(0.5f, 0f);
+            rt.offsetMin = new Vector2(0f,   0f);
+            rt.offsetMax = new Vector2(0f, 120f);
+            r.HudGO.AddComponent<Image>().color = new Color(0.05f, 0.05f, 0.1f, 1f);
             r.HudGO.AddComponent<HUDController>();
 
             var hud = r.HudGO.transform;
 
-            // ── Bottom HUD: Undo | Restart | MoveCount | Tips ──────────────────────
-            // Timer is in the TimerBar at the top — not in this strip.
+            // 1px separator anchored to the very top edge of the HUD bar
+            var sepGO              = MakeUIGO("TopBorder", hud);
+            var sepRT              = sepGO.GetComponent<RectTransform>();
+            sepRT.anchorMin        = new Vector2(0f, 1f);
+            sepRT.anchorMax        = new Vector2(1f, 1f);
+            sepRT.pivot            = new Vector2(0.5f, 1f);
+            sepRT.anchoredPosition = Vector2.zero;
+            sepRT.sizeDelta        = new Vector2(0f, 1f);
+            sepGO.AddComponent<Image>().color = new Color(1f, 1f, 1f, 0.08f);
 
-            r.UndoButtonGO = MakeFixedHudButton("UndoButton",    hud, "Undo",    anchorLeft: true,  offsetX: 10f);
+            // Full-area row container with HorizontalLayoutGroup
+            var rowGO = MakeUIGO("HUDRow", hud);
+            var rowRT = rowGO.GetComponent<RectTransform>();
+            rowRT.anchorMin = Vector2.zero;
+            rowRT.anchorMax = Vector2.one;
+            rowRT.offsetMin = Vector2.zero;
+            rowRT.offsetMax = Vector2.zero;
+
+            var hlg                    = rowGO.AddComponent<HorizontalLayoutGroup>();
+            hlg.spacing                = 5f;
+            hlg.childAlignment         = TextAnchor.MiddleCenter;
+            hlg.childControlWidth      = true;
+            hlg.childControlHeight     = true;
+            hlg.childForceExpandWidth  = true;
+            hlg.childForceExpandHeight = true;
+            hlg.padding                = new RectOffset(8, 8, 6, 6);
+
+            var row = rowGO.transform;
+
+            var grey = new Color(0.53f, 0.53f, 0.67f, 1f);   // #8888aa — muted labels
+            var pink = new Color(1f,    0.18f, 0.47f, 1f);   // #ff2d78 — tips accent
+
+            // 1. Undo
+            r.UndoButtonGO = MakeHudBtn("UndoButton",   row, "UNDO",    new Color(1f, 1f, 1f, 0.05f), grey);
             r.UndoButtonGO.AddComponent<UndoButton>();
 
-            r.HudRestartGO = MakeFixedHudButton("RestartButton", hud, "Restart", anchorLeft: true,  offsetX: 180f);
+            // 2. Restart
+            r.HudRestartGO = MakeHudBtn("RestartButton", row, "RESTART", new Color(1f, 1f, 1f, 0.05f), grey);
             r.HudRestartGO.AddComponent<RestartButton>();
 
-            // Move count sits in the centre of the HUD strip.
-            r.HudMoveText           = MakeTMP("MoveCountText", hud, "0 moves");
-            r.HudMoveText.alignment = TextAlignmentOptions.Center;
-            Anchor(r.HudMoveText, 0.38f, 0.08f, 0.62f, 0.92f);
+            // 3. Move counter — pink hero element, no button interaction
+            r.HudMoveText = MakeHudMoveCounter("MoveCounter", row);
 
-            // Menu button — second from right, next to Tips.
-            r.MenuButtonGO = MakeFixedHudButton("MenuButton", hud, "Menu", anchorLeft: false, offsetX: 180f);
+            // 4. Menu
+            r.MenuButtonGO = MakeHudBtn("MenuButton",  row, "MENU",    new Color(1f, 1f, 1f, 0.05f), grey);
             r.MenuButtonGO.AddComponent<MenuButton>();
 
-            r.TipsButtonGO = MakeFixedHudButton("TipsButton", hud, "Tips", anchorLeft: false, offsetX: 10f);
+            // 5. Tips — pink accent
+            r.TipsButtonGO = MakeHudBtn("TipsButton",  row, "TIPS",    new Color(1f, 0.11f, 0.47f, 0.15f), pink);
             r.TipsButtonGO.AddComponent<TipsButton>();
         }
 
-        // Creates a 160×80 Button pinned to the left or right edge of the HUD strip.
-        // offsetX is the gap between the edge and the button's near side.
-        static GameObject MakeFixedHudButton(string name, Transform parent, string label, bool anchorLeft, float offsetX)
+        // Creates a HUD button: single centred label TMP, no icon.
+        static GameObject MakeHudBtn(string name, Transform parent, string label,
+            Color bgColor, Color textColor)
         {
-            var btn = MakeButton(name, parent, label);
-            var rt  = btn.GetComponent<RectTransform>();
+            var go  = MakeUIGO(name, parent);
+            var img = go.AddComponent<Image>();
+            img.sprite = GetOrCreateRoundedRectSprite();
+            img.type   = Image.Type.Sliced;
+            img.color  = bgColor;
 
-            float ax            = anchorLeft ? 0f : 1f;
-            rt.anchorMin        = new Vector2(ax, 0.5f);
-            rt.anchorMax        = new Vector2(ax, 0.5f);
-            rt.pivot            = new Vector2(anchorLeft ? 0f : 1f, 0.5f);
-            rt.sizeDelta        = new Vector2(160f, 80f);
-            rt.anchoredPosition = new Vector2(anchorLeft ? offsetX : -offsetX, 0f);
-            return btn.gameObject;
+            var btn                  = go.AddComponent<Button>();
+            var colors               = btn.colors;
+            colors.normalColor       = Color.white;
+            colors.highlightedColor  = new Color(1f, 1f, 1f, 0.8f);
+            colors.pressedColor      = new Color(0.8f, 0.8f, 0.8f, 1f);
+            colors.disabledColor     = new Color(1f, 1f, 1f, 0.4f);
+            btn.colors               = colors;
+
+            var le            = go.AddComponent<LayoutElement>();
+            le.flexibleWidth  = 1f;
+            le.preferredWidth = 110f;
+
+            // Single stretched TMP label — no icon, no VLG needed.
+            var labelGO               = MakeUIGO("Label", go.transform);
+            Stretch(labelGO);
+            var labelTMP              = labelGO.AddComponent<TextMeshProUGUI>();
+            labelTMP.text             = label;
+            labelTMP.alignment        = TextAlignmentOptions.Center;
+            labelTMP.color            = textColor;
+            labelTMP.fontSize         = 30f;
+            labelTMP.fontStyle        = FontStyles.Bold;
+            labelTMP.enableAutoSizing = false;
+
+            return go;
         }
+
+        // Creates the move counter: large pink count, centred.
+        // Returns the TMP (wired to HUDController._moveCountText).
+        static TextMeshProUGUI MakeHudMoveCounter(string name, Transform parent)
+        {
+            var go  = MakeUIGO(name, parent);
+            var img = go.AddComponent<Image>();
+            img.sprite = GetOrCreateRoundedRectSprite();
+            img.type   = Image.Type.Sliced;
+            img.color  = new Color(1f, 0.11f, 0.47f, 0.15f);
+
+            var le            = go.AddComponent<LayoutElement>();
+            le.flexibleWidth  = 1.5f;
+            le.preferredWidth = 140f;
+
+            var numGO               = MakeUIGO("MoveCountText", go.transform);
+            Stretch(numGO);
+            var numTMP              = numGO.AddComponent<TextMeshProUGUI>();
+            numTMP.text             = "0";
+            numTMP.alignment        = TextAlignmentOptions.Center;
+            numTMP.color            = DesignSystem.Primary;
+            numTMP.fontStyle        = FontStyles.Bold;
+            numTMP.fontSize         = 28f;
+            numTMP.enableAutoSizing = false;
+
+            return numTMP;
+        }
+
+        static Sprite TryLoadSprite(string path) => AssetDatabase.LoadAssetAtPath<Sprite>(path);
 
         // ── SerializeField wiring ──────────────────────────────────────────────────
 
@@ -513,7 +630,9 @@ namespace BrainBattle.Editor
         {
             var go  = MakeUIGO(name, parent);
             var img = go.AddComponent<Image>();
-            img.color = BtnBg;
+            img.sprite = GetOrCreateRoundedRectSprite();
+            img.type   = Image.Type.Sliced;
+            img.color  = BtnBg;
             var btn = go.AddComponent<Button>();
 
             // Tint the button states so pressed/highlighted are visible.
@@ -542,6 +661,220 @@ namespace BrainBattle.Editor
             tmp.text  = text;
             tmp.color = Color.white;
             return tmp;
+        }
+
+        // ── HUD icon font ─────────────────────────────────────────────────────────
+        // LiberationSans SDF (pre-baked) covers ASCII only.  We create a Dynamic
+        // TMP font asset from the bundled LiberationSans.ttf so that glyphs in the
+        // Arrows (U+2190+) and Mathematical Operators (U+2200+) blocks are generated
+        // on-demand.  The asset is saved to disk so it survives domain reload and
+        // is included in Android/iOS builds (Assets/TextMesh Pro is always packaged).
+
+        static TMP_FontAsset _hudIconFont;
+
+        static TMP_FontAsset GetOrCreateHudIconFont()
+        {
+            const string AssetPath = "Assets/_Project/Resources/Fonts/HUDIcons SDF.asset";
+
+            if (_hudIconFont != null) return _hudIconFont;
+
+            // Re-use previously saved asset (survives builder re-runs).
+            _hudIconFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(AssetPath);
+            if (_hudIconFont != null) return _hudIconFont;
+
+            // Prefer Segoe UI Symbol (ships with Windows 7+) — it covers Arrows, Dingbats, and
+            // Miscellaneous Symbols, giving us ↩ ↺ ☰ ✦.  We copy the TTF into the project as a
+            // proper Asset so TMP_FontAsset.CreateFontAsset can read its glyph data.
+            // Fall back to bundled LiberationSans if Segoe isn't available.
+            Font srcFont = null;
+            const string SymAssetPath = "Assets/_Project/Resources/Fonts/SegoeSym.ttf";
+
+            // Copy once from Windows Fonts if not already in project.
+            if (string.IsNullOrEmpty(AssetDatabase.AssetPathToGUID(SymAssetPath)))
+            {
+                string winFonts = System.Environment.GetFolderPath(
+                                      System.Environment.SpecialFolder.Fonts);
+                foreach (var filename in new[] { "seguisym.ttf", "seguisym2.ttf" })
+                {
+                    string src = System.IO.Path.Combine(winFonts, filename);
+                    if (!System.IO.File.Exists(src)) continue;
+                    System.IO.Directory.CreateDirectory("Assets/_Project/Resources/Fonts");
+                    System.IO.File.Copy(src, SymAssetPath, overwrite: true);
+                    AssetDatabase.ImportAsset(SymAssetPath, ImportAssetOptions.ForceUpdate);
+                    Debug.Log($"[KingsSceneBuilder] Copied '{filename}' → {SymAssetPath}");
+                    break;
+                }
+            }
+            srcFont = AssetDatabase.LoadAssetAtPath<Font>(SymAssetPath);
+
+            if (srcFont == null)
+            {
+                const string TtfPath = "Assets/TextMesh Pro/Fonts/LiberationSans.ttf";
+                srcFont = AssetDatabase.LoadAssetAtPath<Font>(TtfPath);
+                if (srcFont == null)
+                {
+                    Debug.LogWarning("[KingsSceneBuilder] No source font found — HUD icons will use default.");
+                    return null;
+                }
+                Debug.LogWarning("[KingsSceneBuilder] HUD icon font: using LiberationSans fallback " +
+                                 "(↩ ↺ ☰ ✦ may render as □ — Segoe UI Symbol not found on this machine).");
+            }
+
+            var fa = TMP_FontAsset.CreateFontAsset(srcFont);
+            if (fa == null)
+            {
+                Debug.LogWarning("[KingsSceneBuilder] TMP_FontAsset.CreateFontAsset returned null.");
+                return null;
+            }
+
+            fa.atlasPopulationMode = AtlasPopulationMode.Dynamic;
+            fa.name = "HUDIcons SDF";
+
+            // Pre-populate the atlas with all required HUD icon glyphs so they are baked
+            // into the atlas texture and available in Android/iOS builds.
+            fa.TryAddCharacters(new uint[]
+            {
+                0x21A9, // ↩  LEFTWARDS ARROW WITH HOOK      — Undo
+                0x21BA, // ↺  ANTICLOCKWISE OPEN CIRCLE      — Restart
+                0x2630, // ☰  TRIGRAM FOR HEAVEN             — Menu
+                0x2726, // ✦  BLACK FOUR POINTED STAR        — Tips
+                0x2190, // ←  LEFTWARDS ARROW (fallback)
+                0x25CB, // ○  WHITE CIRCLE       (fallback)
+                0x2261, // ≡  IDENTICAL TO       (fallback)
+                0x25C6, // ◆  BLACK DIAMOND SUIT (fallback)
+            });
+
+            System.IO.Directory.CreateDirectory("Assets/_Project/Resources/Fonts");
+            AssetDatabase.CreateAsset(fa, AssetPath);
+            AssetDatabase.SaveAssets();
+
+            _hudIconFont = fa;
+            Debug.Log($"[KingsSceneBuilder] Created {AssetPath}");
+            return _hudIconFont;
+        }
+
+        // ── Body font (Outfit) ────────────────────────────────────────────────────
+        // Applied to every TMP in the scene for a consistent, modern look.
+        // TTF downloaded to Assets/_Project/Resources/Fonts/Outfit-Regular.ttf.
+
+        static TMP_FontAsset _bodyFont;
+
+        static TMP_FontAsset GetOrCreateBodyFont()
+        {
+            const string AssetPath  = "Assets/_Project/Resources/Fonts/Outfit SDF.asset";
+            const string TtfPath    = "Assets/_Project/Resources/Fonts/Outfit-Regular.ttf";
+
+            if (_bodyFont != null) return _bodyFont;
+
+            _bodyFont = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(AssetPath);
+            if (_bodyFont != null) return _bodyFont;
+
+            // Ensure font data is embedded so TMP can read the glyph data.
+            AssetDatabase.ImportAsset(TtfPath, ImportAssetOptions.ForceUpdate);
+            var fontImporter = AssetImporter.GetAtPath(TtfPath) as TrueTypeFontImporter;
+            if (fontImporter != null && !fontImporter.includeFontData)
+            {
+                fontImporter.includeFontData = true;
+                fontImporter.SaveAndReimport();
+            }
+
+            var srcFont = AssetDatabase.LoadAssetAtPath<Font>(TtfPath);
+            if (srcFont == null)
+            {
+                Debug.LogWarning($"[KingsSceneBuilder] {TtfPath} not found — body font skipped.");
+                return null;
+            }
+
+            var fa = TMP_FontAsset.CreateFontAsset(srcFont);
+            if (fa == null)
+            {
+                Debug.LogWarning("[KingsSceneBuilder] TMP_FontAsset.CreateFontAsset returned null for Outfit.");
+                return null;
+            }
+
+            fa.atlasPopulationMode = AtlasPopulationMode.Dynamic;
+            fa.name = "Outfit SDF";
+
+            System.IO.Directory.CreateDirectory("Assets/_Project/Resources/Fonts");
+            AssetDatabase.CreateAsset(fa, AssetPath);
+            AssetDatabase.SaveAssets();
+
+            _bodyFont = fa;
+            Debug.Log($"[KingsSceneBuilder] Created {AssetPath}");
+            return _bodyFont;
+        }
+
+        // Shared palette — sourced from DesignSystem; BtnBg has no matching token.
+        // ── Rounded-rect UI sprite ────────────────────────────────────────────────
+        // White 128×128 texture with 28 px corner radius, saved once as a PNG.
+        // Applied to every button/panel Image with Type.Sliced so corners stay
+        // sharp at any RectTransform size.  pixelsPerUnit = 1 so the border value
+        // (28) maps directly to 28 canvas pixels — nice ~14 % radius on a 200 px button.
+
+        static Sprite _roundedRectSprite;
+
+        static Sprite GetOrCreateRoundedRectSprite()
+        {
+            const string AssetPath = "Assets/_Project/Resources/Sprites/UIRoundedRect.png";
+            const int    TexSize   = 128;
+            const int    Radius    = 10;
+
+            if (_roundedRectSprite != null) return _roundedRectSprite;
+
+            _roundedRectSprite = AssetDatabase.LoadAssetAtPath<Sprite>(AssetPath);
+            if (_roundedRectSprite != null) return _roundedRectSprite;
+
+            // Generate white rounded-rect texture.
+            var tex    = new Texture2D(TexSize, TexSize, TextureFormat.RGBA32, false);
+            var pixels = new Color32[TexSize * TexSize];
+            var white  = new Color32(255, 255, 255, 255);
+            var clear  = new Color32(0, 0, 0, 0);
+
+            for (int y = 0; y < TexSize; y++)
+                for (int x = 0; x < TexSize; x++)
+                    pixels[y * TexSize + x] = RRectInside(x, y, TexSize, Radius) ? white : clear;
+
+            tex.SetPixels32(pixels);
+            tex.Apply();
+
+            string fullPath = System.IO.Path.Combine(
+                Application.dataPath, "_Project/Resources/Sprites/UIRoundedRect.png");
+            System.IO.File.WriteAllBytes(fullPath, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            AssetDatabase.ImportAsset(AssetPath, ImportAssetOptions.ForceUpdate);
+
+            // Configure 9-slice import: pixelsPerUnit=1 → border of 28 = 28 canvas px.
+            var imp = AssetImporter.GetAtPath(AssetPath) as TextureImporter;
+            if (imp != null)
+            {
+                imp.textureType          = TextureImporterType.Sprite;
+                imp.spriteImportMode     = SpriteImportMode.Single;
+                imp.alphaIsTransparency  = true;
+                imp.filterMode           = FilterMode.Bilinear;
+                imp.spriteBorder         = new Vector4(Radius, Radius, Radius, Radius);
+                imp.spritePixelsPerUnit  = 1f;
+                imp.SaveAndReimport();
+            }
+
+            _roundedRectSprite = AssetDatabase.LoadAssetAtPath<Sprite>(AssetPath);
+            Debug.Log($"[KingsSceneBuilder] Created {AssetPath}");
+            return _roundedRectSprite;
+        }
+
+        static bool RRectInside(int x, int y, int size, int r)
+        {
+            int s = size - 1;
+            if (x <= r   && y <= r)   return RRectDist(x, y, r,   r)   <= r;
+            if (x >= s-r && y <= r)   return RRectDist(x, y, s-r, r)   <= r;
+            if (x <= r   && y >= s-r) return RRectDist(x, y, r,   s-r) <= r;
+            if (x >= s-r && y >= s-r) return RRectDist(x, y, s-r, s-r) <= r;
+            return true;
+        }
+
+        static float RRectDist(int x, int y, int cx, int cy)
+        {
+            float dx = x - cx, dy = y - cy;
+            return Mathf.Sqrt(dx * dx + dy * dy);
         }
 
         // Shared palette — sourced from DesignSystem; BtnBg has no matching token.
@@ -736,7 +1069,7 @@ namespace BrainBattle.Editor
             public GameObject      HudRestartGO;
             public GameObject      MenuButtonGO;
             public GameObject      TipsButtonGO;
-            public TextMeshProUGUI HudMoveText;
+            public TextMeshProUGUI HudMoveText;   // MoveCounter → HUDController._moveCountText
         }
     }
 }

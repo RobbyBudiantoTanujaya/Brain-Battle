@@ -15,6 +15,19 @@ namespace BrainBattle.Shared.UI
         public static readonly Color BorderRegion  = new Color(0f, 0f, 0f, 0.8f);
         public static readonly Color BorderCell    = new Color(0f, 0f, 0f, 0.2f);
 
+        // HUD Bar
+        public static readonly Color HUDBarGradientTop    = new Color(0.075f, 0.075f, 0.165f, 1f);   // #13132a
+        public static readonly Color HUDBarGradientBottom = new Color(0.051f, 0.051f, 0.102f, 1f);   // #0d0d1a
+        public static readonly Color HUDBorderSeparator   = new Color(1f, 1f, 1f, 0.08f);            // rgba(255,255,255,0.08)
+        public static readonly Color HUDButtonBg          = new Color(1f, 1f, 1f, 0.05f);            // rgba(255,255,255,0.05)
+        public static readonly Color HUDButtonBorder      = new Color(1f, 1f, 1f, 0.08f);            // rgba(255,255,255,0.08)
+        public static readonly Color HUDMoveCounterBg     = new Color(1f, 0.176f, 0.471f, 0.12f);    // rgba(255,45,120,0.12)
+        public static readonly Color HUDMoveCounterBorder = new Color(1f, 0.176f, 0.471f, 0.30f);    // rgba(255,45,120,0.30)
+        public static readonly Color HUDTipsBg            = new Color(1f, 0.176f, 0.471f, 0.15f);    // rgba(255,45,120,0.15)
+        public static readonly Color HUDTipsBorder        = new Color(1f, 0.176f, 0.471f, 0.35f);    // rgba(255,45,120,0.35)
+        public static readonly Color HUDLabelText         = new Color(0.533f, 0.533f, 0.667f, 1f);   // #8888aa
+        public static readonly Color HUDMoveCounterLabel  = new Color(1f, 0.176f, 0.471f, 0.55f);    // rgba(255,45,120,0.55)
+
         // Typography
         public static readonly int FontSizeSmall  = 12;
         public static readonly int FontSizeBody   = 16;
@@ -37,7 +50,7 @@ namespace BrainBattle.Shared.UI
         public static readonly float RadiusL = 16f;
 
         // Component sizes
-        public static readonly float HUDHeight         = 72f;
+        public static readonly float HUDHeight         = 80f;
         public static readonly float TimerBarHeight    = 48f;
         public static readonly float ButtonHeight      = 64f;
         public static readonly float TabHeight         = 60f;
