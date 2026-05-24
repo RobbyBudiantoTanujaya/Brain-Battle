@@ -13,7 +13,7 @@ namespace BrainBattle.Kings.Editor
     public static class KingsLevelGenerator
     {
         private const string OutputPath = "Assets/_Project/ScriptableObjects/Kings/Levels";
-        private const int NewLevelsPerCategory = 6;
+        private const int NewLevelsPerCategory = 1;
 
         private static readonly (string oldName, string newName)[] LegacyRenames =
         {
@@ -28,7 +28,6 @@ namespace BrainBattle.Kings.Editor
         public static void GenerateLevels()
         {
             EnsureDirectory(OutputPath);
-            DeleteAllLevelAssets();   // always wipe first — re-runs must never accumulate stale levels
 
             LevelSpec[] newLevels = BuildNewLevels();
 
@@ -313,7 +312,7 @@ namespace BrainBattle.Kings.Editor
             string originalPath = EditorSceneManager.GetActiveScene().path;
 
             int synced = 0;
-            synced += SyncSceneByPath("Assets/_Project/Scenes/SampleScene.unity",  orderedLevels);
+            synced += SyncSceneByPath("Assets/Scenes/SampleScene.unity",  orderedLevels);
             synced += SyncSceneByPath("Assets/_Project/Scenes/LevelSelect.unity",  orderedLevels);
 
             // Restore the scene the user had open.

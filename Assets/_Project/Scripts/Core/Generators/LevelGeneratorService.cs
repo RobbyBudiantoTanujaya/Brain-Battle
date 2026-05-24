@@ -27,6 +27,8 @@ namespace BrainBattle.Core.Generators
 
                 if (!KingsUniquenessVerifier.Verify(size, regionMap, queens, rng)) continue;
 
+                if (!PassesRegionSizeConstraints(size, regionMap)) continue;
+
                 return BuildLevelData(levelNumber, size, difficulty, queens, regionMap);
             }
 
