@@ -51,8 +51,8 @@ namespace BrainBattle.Games.Kings.UI
             SetFS(_menuLabel,    labelSize);
             SetFS(_tipsLabel,    labelSize);
 
-            SetFS(_moveCountNum, counterSize);
-            SetFS(_movesLabel,   movesSize);
+            SetFS(_moveCountNum, iconSize);
+            SetFS(_movesLabel,   labelSize);
         }
 
         // ── Helpers ────────────────────────────────────────────────────────────
