@@ -676,7 +676,10 @@ namespace BrainBattle.Editor
             var existingIcon = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(AssetPath);
             bool isIconValid = false;
             try { isIconValid = existingIcon != null && existingIcon.atlasTextures != null
-                             && existingIcon.atlasTextures.Length > 0 && existingIcon.atlasTextures[0] != null; }
+                             && existingIcon.atlasTextures.Length > 0 && existingIcon.atlasTextures[0] != null
+                             && existingIcon.atlasTextures[0].width > 1  // atlas must have real pixel data
+                             && existingIcon.atlasPopulationMode == AtlasPopulationMode.Static
+                             && existingIcon.characterTable.Count > 0; }
             catch { }
 
             if (isIconValid) { _hudIconFont = existingIcon; return _hudIconFont; }
@@ -730,27 +733,54 @@ namespace BrainBattle.Editor
                 return null;
             }
 
-            fa.atlasPopulationMode = AtlasPopulationMode.Dynamic;
             fa.name = "HUDIcons SDF";
 
-            // Pre-populate the atlas with all required HUD icon glyphs so they are baked
-            // into the atlas texture and available in Android/iOS builds.
+            // Pre-bake HUD icon glyphs while still Dynamic (TryAddCharacters only works in Dynamic mode),
+            // then switch to Static so the atlas is preserved in Android/iOS builds.
             fa.TryAddCharacters(new uint[]
             {
                 0x21A9, // ↩  LEFTWARDS ARROW WITH HOOK      — Undo
                 0x21BA, // ↺  ANTICLOCKWISE OPEN CIRCLE      — Restart
                 0x2630, // ☰  TRIGRAM FOR HEAVEN             — Menu
                 0x2726, // ✦  BLACK FOUR POINTED STAR        — Tips
+                0x2605, // ★  BLACK STAR                     — Victory stars
+                0x2606, // ☆  WHITE STAR                     — Victory stars empty
                 0x2190, // ←  LEFTWARDS ARROW (fallback)
                 0x25CB, // ○  WHITE CIRCLE       (fallback)
                 0x2261, // ≡  IDENTICAL TO       (fallback)
                 0x25C6, // ◆  BLACK DIAMOND SUIT (fallback)
             });
+            fa.atlasPopulationMode = AtlasPopulationMode.Static;
 
             System.IO.Directory.CreateDirectory("Assets/_Project/Resources/Fonts");
             _hudIconFont = SaveFontAssetWithSubAssets(fa, AssetPath);
-            Debug.Log($"[KingsSceneBuilder] Created {AssetPath}");
+            Debug.Log($"[KingsSceneBuilder] Created {AssetPath} (Static, {fa.characterTable.Count} icon chars baked)");
             return _hudIconFont;
+        }
+
+        // ── Font baking helper ────────────────────────────────────────────────────
+        // Pre-bakes printable ASCII + common game chars into a Static TMP atlas.
+        // Must be called immediately after TMP_FontAsset.CreateFontAsset() while
+        // FontEngine still has the face loaded. Static mode + pre-baked atlas is
+        // required for Android — Dynamic mode silently fails on many devices because
+        // GPU-side SDF atlas regeneration is unreliable in Android builds.
+        static void BakeFullCharset(TMP_FontAsset fa)
+        {
+            var sb = new System.Text.StringBuilder();
+            for (int i = 32; i <= 126; i++) sb.Append((char)i);  // full printable ASCII
+            sb.Append((char)0x2605); // ★ filled star
+            sb.Append((char)0x2606); // ☆ empty star
+            sb.Append((char)0x2022); // • bullet
+            sb.Append((char)0x2013); // – en-dash
+            sb.Append((char)0x2014); // — em-dash
+            sb.Append((char)0x2026); // … ellipsis
+            sb.Append((char)0x00B0); // ° degree
+            string missingChars;
+            bool ok = fa.TryAddCharacters(sb.ToString(), out missingChars, false);
+            if (!ok && !string.IsNullOrEmpty(missingChars))
+                Debug.LogWarning($"[KingsSceneBuilder] BakeFullCharset: {missingChars.Length} chars not in font: {missingChars}");
+            else
+                Debug.Log($"[KingsSceneBuilder] BakeFullCharset: {fa.characterTable.Count} chars baked into atlas.");
         }
 
         // ── Body font (Outfit) ────────────────────────────────────────────────────
@@ -769,7 +799,10 @@ namespace BrainBattle.Editor
             var existing = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(AssetPath);
             bool isValid = false;
             try { isValid = existing != null && existing.atlasTextures != null
-                         && existing.atlasTextures.Length > 0 && existing.atlasTextures[0] != null; }
+                         && existing.atlasTextures.Length > 0 && existing.atlasTextures[0] != null
+                         && existing.atlasTextures[0].width > 1  // atlas must have real pixel data
+                         && existing.atlasPopulationMode == AtlasPopulationMode.Static
+                         && existing.characterTable.Count > 0; }
             catch { }
 
             if (isValid) { _bodyFont = existing; return _bodyFont; }
@@ -794,6 +827,10 @@ namespace BrainBattle.Editor
                 return null;
             }
 
+            // Create with Static mode — Dynamic fails on Android because
+            // runtime atlas regeneration requires GPU font rendering not available on all devices.
+            // We pre-bake the full ASCII set + common game chars here so the atlas is
+            // complete before the build. ClearDynamicDataOnBuild=0 keeps this atlas in APK.
             var fa = TMP_FontAsset.CreateFontAsset(srcFont);
             if (fa == null)
             {
@@ -801,11 +838,16 @@ namespace BrainBattle.Editor
                 return null;
             }
 
-            fa.atlasPopulationMode = AtlasPopulationMode.Dynamic;
+            // Bake full charset BEFORE switching to Static — TryAddCharacters only
+            // works on Dynamic fonts. After baking, switch to Static to lock the atlas
+            // so it survives Android builds without runtime regeneration.
+            BakeFullCharset(fa);
+            fa.atlasPopulationMode = AtlasPopulationMode.Static;
+
             fa.name = "Outfit SDF";
             System.IO.Directory.CreateDirectory("Assets/_Project/Resources/Fonts");
             _bodyFont = SaveFontAssetWithSubAssets(fa, AssetPath);
-            Debug.Log($"[KingsSceneBuilder] Created {AssetPath}");
+            Debug.Log($"[KingsSceneBuilder] Created {AssetPath} (Static, {fa.characterTable.Count} chars baked)");
             return _bodyFont;
         }
 
