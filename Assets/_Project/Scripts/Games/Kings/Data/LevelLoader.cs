@@ -14,6 +14,16 @@ namespace BrainBattle.Kings
 
         private void Awake()
         {
+            // Purge null slots that appear when level assets are deleted and regenerated.
+            // A non-empty array full of nulls must still trigger auto-load.
+            if (_allLevels != null)
+            {
+                var valid = new List<LevelData>(_allLevels.Length);
+                foreach (var l in _allLevels)
+                    if (l != null) valid.Add(l);
+                _allLevels = valid.ToArray();
+            }
+
             if (_allLevels != null && _allLevels.Length > 0) return;
 
 #if UNITY_EDITOR
@@ -35,8 +45,9 @@ namespace BrainBattle.Kings
 
         public LevelData GetLevel(int levelNumber)
         {
+            if (_allLevels == null) return null;
             foreach (var level in _allLevels)
-                if (level.LevelNumber == levelNumber)
+                if (level != null && level.LevelNumber == levelNumber)
                     return level;
             return null;
         }
