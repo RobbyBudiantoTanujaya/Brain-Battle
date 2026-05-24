@@ -259,6 +259,9 @@ Read tokens in code (e.g., `BuildCells()`, `Start()`), not in `[SerializeField]`
 13. **VictoryContent must be inactive at scene save** — KingsSceneBuilder sets `VictoryContent.SetActive(false)`. Never re-activate it in the editor.
 14. **Vector2Int convention** throughout the project: `x = col`, `y = row`. `GetCell(row, col)` takes (row, col). Never mix these up.
 15. **After completing any task**, update `Assets/_Project/Documentation/Milestones.md`.
+16. **Never write `AtlasPopulationMode.Dynamic` anywhere in code** — Dynamic TMP fonts fail silently on Android. Always use `Static` + pre-baked atlas. All font creation goes through `KingsSceneBuilder.GetOrCreateBodyFont()` / `GetOrCreateHudIconFont()` which handle this correctly.
+17. **Never call `TMP_FontAsset.CreateFontAsset()` without immediately calling `BakeFullCharset()` before switching to `Static`** — the order matters: bake while Dynamic → switch to Static. Reversing the order makes `TryAddCharacters` fail silently.
+18. **Never "fix" missing Android text by only editing `TMP Settings.asset`** — `m_ClearDynamicDataOnBuild=0` is necessary but not sufficient. Font assets must also be `Static` with pre-baked atlas. Correct fix: run `BrainBattle → Build Kings Scene`.
 
 ---
 
@@ -333,10 +336,18 @@ VictoryPanel → "Restart"
 ### Fonts — `Assets/_Project/Resources/Fonts/`
 | File                 | Notes                                                      |
 |----------------------|------------------------------------------------------------|
-| `HUDIcons SDF.asset` | Dynamic TMP font for HUD icons: ↩ ↺ ☰ ✦ (and star ◆/★). Source: Segoe UI Symbol (Windows) or LiberationSans fallback |
-| `Outfit SDF.asset`   | Dynamic TMP body font. Source: `Outfit-Regular.ttf`        |
+| `HUDIcons SDF.asset` | **Static** TMP font for HUD icons: ↩ ↺ ☰ ✦ ★ ☆. Source: Segoe UI Symbol (Windows) or LiberationSans fallback. 10 icon glyphs pre-baked. |
+| `Outfit SDF.asset`   | **Static** TMP body font. Source: `Outfit-Regular.ttf`. 100 chars (full ASCII 32–126 + common symbols) pre-baked. |
 | `Outfit-Regular.ttf` | Must have `includeFontData = true` (set by KingsSceneBuilder)|
 | `SegoeSym.ttf`       | Copied from Windows Fonts once; not needed on Mac/Linux     |
+
+**Font atlas rules (Android-critical):**
+- Both SDF assets MUST be `AtlasPopulationMode.Static` — Dynamic mode fails silently on Android because GPU-side SDF atlas regeneration is unreliable in builds.
+- `TMP Settings.asset → m_ClearDynamicDataOnBuild` MUST be `0` — value `1` strips all pre-baked atlas data from the APK before build.
+- **Never manually edit font `.asset` files or switch them to Dynamic** — the next `Build Kings Scene` will detect the broken atlas and recreate them correctly.
+- **Never "fix" missing text by only changing `TMP Settings`** — that is necessary but not sufficient. The font assets themselves must be Static with a pre-baked atlas.
+- The correct fix for any missing-text bug on Android: run `BrainBattle → Build Kings Scene`. The builder's validity check (`Static` + `atlas.width > 1` + `characterTable.Count > 0`) will detect and rebuild broken assets automatically.
+- `TryAddCharacters` only works while the font is **Dynamic**. The builder calls it before switching to Static — never swap those two steps.
 
 ### Level Assets — `Assets/_Project/ScriptableObjects/Kings/Levels/`
 - Naming: `Kings_Beginner_01.asset`, `Kings_Expert_02.asset`, `Kings_Impossible_01.asset`
@@ -454,7 +465,7 @@ Every time a new task arrives:
 
 ### Android-specific
 - BGM (`bgm.mp3`) must use `loadType: 2` (Streaming) on Android — set in `.meta` platform override. Decompress On Load causes memory/timeout issues on Android.
-- `m_ClearDynamicDataOnBuild: 0` in `TMP Settings.asset` — must be 0 or TMP font atlas is stripped from Android APK and all button text disappears.
+- `m_ClearDynamicDataOnBuild: 0` in `TMP Settings.asset` — must be 0 or TMP font atlas is stripped from Android APK and all button text disappears. **This alone is not enough** — font assets must also be Static with pre-baked atlas (see §7 Font atlas rules).
 
 ---
 
