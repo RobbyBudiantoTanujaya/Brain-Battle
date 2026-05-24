@@ -28,7 +28,7 @@ namespace BrainBattle.Kings.Editor
         public static void GenerateLevels()
         {
             EnsureDirectory(OutputPath);
-            RenameLegacyAssets();
+            DeleteAllLevelAssets();   // always wipe first — re-runs must never accumulate stale levels
 
             LevelSpec[] newLevels = BuildNewLevels();
 
@@ -248,6 +248,31 @@ namespace BrainBattle.Kings.Editor
             // Strip leading "Assets/" and join with dataPath.
             string relative = OutputPath.Substring("Assets/".Length).Replace('/', Path.DirectorySeparatorChar);
             return Path.Combine(Application.dataPath, relative);
+        }
+
+        // Deletes every Kings_*.asset in OutputPath so Generate always starts from a clean slate.
+        private static void DeleteAllLevelAssets()
+        {
+            string dir = LevelsAbsolutePath();
+            if (!Directory.Exists(dir)) return;
+
+            string[] files = Directory.GetFiles(dir, "Kings_*.asset");
+            int deleted = 0;
+            foreach (string file in files)
+            {
+                // Convert absolute path back to Assets-relative for AssetDatabase.
+                string relative = "Assets/" + file.Substring(Application.dataPath.Length + 1).Replace(Path.DirectorySeparatorChar, '/');
+                if (AssetDatabase.DeleteAsset(relative))
+                    deleted++;
+                else
+                    UnityEngine.Debug.LogWarning($"[KingsLevelGenerator] Could not delete {relative}");
+            }
+
+            if (deleted > 0)
+            {
+                AssetDatabase.Refresh();
+                UnityEngine.Debug.Log($"[KingsLevelGenerator] Deleted {deleted} existing level asset(s) before regeneration.");
+            }
         }
 
         private static void RenameLegacyAssets()

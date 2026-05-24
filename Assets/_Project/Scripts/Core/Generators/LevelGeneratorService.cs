@@ -35,13 +35,11 @@ namespace BrainBattle.Core.Generators
             return null;
         }
 
-        // ── Region size constraint (8×8 and larger) ──────────────────────────────
-        // Max 1 region with exactly 1 cell; max 2 regions with exactly 2 cells.
-        // Prevents trivially-easy puzzles caused by isolated or near-isolated regions.
+        // ── Region size constraint (all grid sizes) ───────────────────────────────
+        // Zero single-cell regions allowed on any grid — a 1-cell region instantly reveals its crown.
+        // Max 2 two-cell regions for 8×8 and larger (prevents near-trivial pairs on big grids).
         private static bool PassesRegionSizeConstraints(int n, int[,] regionMap)
         {
-            if (n < 8) return true;
-
             var sizes = new int[n];
             for (int r = 0; r < n; r++)
                 for (int c = 0; c < n; c++)
@@ -53,7 +51,9 @@ namespace BrainBattle.Core.Generators
                 if (s == 1) singles++;
                 else if (s == 2) pairs++;
             }
-            return singles <= 1 && pairs <= 2;
+            if (singles > 0) return false;           // no single-cell regions ever
+            if (n >= 8 && pairs > 2) return false;   // limit near-trivial pairs on large grids
+            return true;
         }
 
         // ── Private helpers ───────────────────────────────────────────────────────
