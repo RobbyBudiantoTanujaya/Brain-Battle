@@ -15,6 +15,11 @@ namespace BrainBattle.Games.Kings.Logic
 
         public int CurrentLevelNumber { get; private set; }
 
+        // Returns the LevelNumber of the next level in the same difficulty, or -1
+        // if the current level is the last one in its difficulty tier.
+        public int GetNextLevelNumberInDifficulty() =>
+            _levelLoader != null ? _levelLoader.GetNextLevelNumberInDifficulty(CurrentLevelNumber) : -1;
+
         private void Start() => StartCoroutine(BootDeferred());
 
         // Wait one frame so the Canvas CanvasScaler has run and all RectTransforms

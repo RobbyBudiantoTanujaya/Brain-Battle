@@ -109,6 +109,7 @@
 - [x] LevelSelectSceneBuilder: wires _allLevels on LevelSelectController after generation
 - [x] KingsLevelGenerator: SyncOpenSceneLevelLoaders() also syncs LevelSelectController._allLevels
 - [x] Fix: Next Level button goes directly to next game level (SampleScene), not LevelSelect
+- [x] Fix: Next Level button now stays within the same difficulty — `LevelLoader.GetNextLevelNumberInDifficulty()` finds the next level by same `Difficulty` string sorted by LevelNumber; falls back to LevelSelect when current level is last in its difficulty
 - [x] KingsUniquenessVerifier: scaled retries (n²×2) and swap count (n/2..n) for reliable 10×10 generation
 - [x] Region size constraint — zero single-cell regions on ALL grid sizes; max 2 two-cell regions for 8×8+ (LevelGeneratorService.PassesRegionSizeConstraints)
 - [x] KingsLevelGenerator.GenerateLevels() deletes all existing Kings_*.asset before generating — re-runs can no longer stack stale levels

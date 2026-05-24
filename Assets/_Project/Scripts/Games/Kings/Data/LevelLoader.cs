@@ -52,6 +52,30 @@ namespace BrainBattle.Kings
             return null;
         }
 
+        // Returns the LevelNumber of the next level in the same difficulty tier,
+        // sorted by LevelNumber ascending. Returns -1 if currentLevelNumber is the
+        // last level of its difficulty (or is not found).
+        public int GetNextLevelNumberInDifficulty(int currentLevelNumber)
+        {
+            if (_allLevels == null) return -1;
+
+            LevelData current = GetLevel(currentLevelNumber);
+            if (current == null) return -1;
+
+            string difficulty = current.Difficulty;
+
+            var same = new List<LevelData>();
+            foreach (var l in _allLevels)
+                if (l != null && l.Difficulty == difficulty) same.Add(l);
+            same.Sort((a, b) => a.LevelNumber.CompareTo(b.LevelNumber));
+
+            for (int i = 0; i < same.Count - 1; i++)
+                if (same[i].LevelNumber == currentLevelNumber)
+                    return same[i + 1].LevelNumber;
+
+            return -1; // current is last in its difficulty
+        }
+
         public GridData BuildGridFromLevel(LevelData level)
         {
             var grid = new GridData(level.GridSize);

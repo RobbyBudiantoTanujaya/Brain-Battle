@@ -87,12 +87,21 @@ namespace BrainBattle.Shared
         {
             _hud?.SetActive(true);
             _panel.SetActive(false);
+
             if (_sceneBootstrap != null)
             {
-                PlayerPrefs.SetInt("Kings_PendingLevel", _sceneBootstrap.CurrentLevelNumber + 1);
-                PlayerPrefs.Save();
+                int next = _sceneBootstrap.GetNextLevelNumberInDifficulty();
+                if (next > 0)
+                {
+                    PlayerPrefs.SetInt("Kings_PendingLevel", next);
+                    PlayerPrefs.Save();
+                    SceneManager.LoadScene("SampleScene");
+                    return;
+                }
             }
-            SceneManager.LoadScene("SampleScene");
+
+            // No next level in this difficulty (last level) — return to Level Select.
+            SceneManager.LoadScene("LevelSelect");
         }
 
         private void OnRestart()
