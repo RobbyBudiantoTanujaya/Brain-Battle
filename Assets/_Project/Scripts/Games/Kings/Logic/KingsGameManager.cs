@@ -46,7 +46,8 @@ namespace BrainBattle.Games.Kings.Logic
         private readonly Stack<GridData> _undoStack = new();
 
         // Key = crown position (x=col, y=row), Value = dot positions auto-placed by that crown.
-        private readonly Dictionary<Vector2Int, HashSet<Vector2Int>> _autoPlacedDots = new();
+        private readonly Dictionary<Vector2Int, HashSet<Vector2Int>> _autoPlacedDots  = new();
+        private readonly Dictionary<Vector2Int, HashSet<Vector2Int>> _autoCoveredDots = new();
 
         private GridData _initialGrid;
         private int      _moveCount;
@@ -118,6 +119,7 @@ namespace BrainBattle.Games.Kings.Logic
 
             _undoStack.Clear();
             _autoPlacedDots.Clear();
+            _autoCoveredDots.Clear();
             _moveCount    = 0;
             HintsUsed     = 0;
             _gameActive   = true;
@@ -141,6 +143,7 @@ namespace BrainBattle.Games.Kings.Logic
 
             _currentGrid = _undoStack.Pop();
             _autoPlacedDots.Clear();
+            _autoCoveredDots.Clear();
             _lastTapTime = float.MinValue;
             _lastTapCell = new(-1, -1);
 
@@ -158,6 +161,7 @@ namespace BrainBattle.Games.Kings.Logic
             _currentGrid = DeepCopy(_initialGrid);
             _undoStack.Clear();
             _autoPlacedDots.Clear();
+            _autoCoveredDots.Clear();
             _moveCount   = 0;
             HintsUsed    = 0;
             _gameActive  = true;
@@ -228,7 +232,7 @@ namespace BrainBattle.Games.Kings.Logic
         private void OnCellTapped(int row, int col)
         {
             if (!_gameActive || _currentGrid == null || _gridRenderer == null) return;
-            if (IsAutoPlacedDot(row, col)) return;
+            if (IsAutoCoveredDot(row, col)) return;
 
             CellState currentState = _currentGrid.GetCell(row, col).State;
             CellState newState;
@@ -282,7 +286,7 @@ namespace BrainBattle.Games.Kings.Logic
         private void OnCellDragEntered(int row, int col, CellState targetState)
         {
             if (!_gameActive || _currentGrid == null || _gridRenderer == null) return;
-            if (IsAutoPlacedDot(row, col)) return;
+            if (IsAutoCoveredDot(row, col)) return;
             CellState current = _currentGrid.GetCell(row, col).State;
             if (current == targetState) return;
             // Never overwrite a Crown via drag; crowns require an explicit double-tap.
@@ -344,22 +348,23 @@ namespace BrainBattle.Games.Kings.Logic
         private void ApplyAutoX(int crownRow, int crownCol)
         {
             // Convention throughout: Vector2Int stores (x=col, y=row).
-            // TryAutoPlaceDot(row, col) — row first, matching GetCell(row, col).
+            // TryAutoCoverCell(row, col) — row first, matching GetCell(row, col).
             // RegionData.Cells entries are Vector2Int(col, row) as stored by LevelLoader.
             // This was verified against LevelGeneratorService (new Vector2Int(c, r)) and
             // LevelLoader.BuildGridFromLevel (grid.GetCell(cell.y, cell.x)) — no off-by-one.
-            var crownPos = new Vector2Int(crownCol, crownRow);
-            var autoSet  = new HashSet<Vector2Int>();
-            int size     = _currentGrid.Size;
-            int regionId = _currentGrid.GetCell(crownRow, crownCol).RegionId;
+            var crownPos     = new Vector2Int(crownCol, crownRow);
+            var autoSet      = new HashSet<Vector2Int>();
+            var coveredSet   = new HashSet<Vector2Int>();
+            int size         = _currentGrid.Size;
+            int regionId     = _currentGrid.GetCell(crownRow, crownCol).RegionId;
 
             // Fill entire row (all columns except crown column).
             for (int c = 0; c < size; c++)
-                if (c != crownCol) TryAutoPlaceDot(crownRow, c, autoSet);
+                if (c != crownCol) TryAutoCoverCell(crownRow, c, autoSet, coveredSet);
 
             // Fill entire column (all rows except crown row).
             for (int r = 0; r < size; r++)
-                if (r != crownRow) TryAutoPlaceDot(r, crownCol, autoSet);
+                if (r != crownRow) TryAutoCoverCell(r, crownCol, autoSet, coveredSet);
 
             // Fill all other cells in the same region.
             foreach (var region in _currentGrid.Regions)
@@ -367,7 +372,7 @@ namespace BrainBattle.Games.Kings.Logic
                 if (region.RegionId != regionId) continue;
                 foreach (var pos in region.Cells) // pos.x = col, pos.y = row
                     if (pos.x != crownCol || pos.y != crownRow)
-                        TryAutoPlaceDot(pos.y, pos.x, autoSet);
+                        TryAutoCoverCell(pos.y, pos.x, autoSet, coveredSet);
                 break;
             }
 
@@ -377,50 +382,62 @@ namespace BrainBattle.Games.Kings.Logic
                     if (dr == 0 && dc == 0) continue;
                     int nr = crownRow + dr, nc = crownCol + dc;
                     if ((uint)nr < (uint)size && (uint)nc < (uint)size)
-                        TryAutoPlaceDot(nr, nc, autoSet);
+                        TryAutoCoverCell(nr, nc, autoSet, coveredSet);
                 }
 
-            _autoPlacedDots[crownPos] = autoSet;
+            _autoPlacedDots[crownPos]  = autoSet;
+            _autoCoveredDots[crownPos] = coveredSet;
         }
 
-        private void TryAutoPlaceDot(int row, int col, HashSet<Vector2Int> autoSet)
+        private void TryAutoCoverCell(int row, int col, HashSet<Vector2Int> autoSet, HashSet<Vector2Int> coveredSet)
         {
-            if (_currentGrid.GetCell(row, col).State != CellState.Empty) return;
+            var cellState = _currentGrid.GetCell(row, col).State;
+            if (cellState == CellState.Crown) return;
+
+            var pos = new Vector2Int(col, row);
+            coveredSet.Add(pos);
+
+            if (cellState != CellState.Empty) return;
+
             _currentGrid.SetCellState(row, col, CellState.Dot);
             _gridRenderer.UpdateCell(row, col, CellState.Dot);
-            autoSet.Add(new Vector2Int(col, row));
+            autoSet.Add(pos);
             AudioManager.Instance?.PlayAutoDot();
         }
 
         private void RemoveAutoX(int crownRow, int crownCol)
         {
             var crownPos = new Vector2Int(crownCol, crownRow);
-            if (!_autoPlacedDots.TryGetValue(crownPos, out var autoSet)) return;
-
-            foreach (var dotPos in autoSet)
+            if (_autoPlacedDots.TryGetValue(crownPos, out var autoSet))
             {
-                // Keep the dot if another crown also auto-placed it.
-                bool coveredByOther = false;
-                foreach (var kv in _autoPlacedDots)
+                foreach (var dotPos in autoSet)
                 {
-                    if (kv.Key == crownPos) continue;
-                    if (kv.Value.Contains(dotPos)) { coveredByOther = true; break; }
-                }
+                    // Keep the dot if another crown also auto-placed it.
+                    bool coveredByOther = false;
+                    foreach (var kv in _autoPlacedDots)
+                    {
+                        if (kv.Key == crownPos) continue;
+                        if (kv.Value.Contains(dotPos)) { coveredByOther = true; break; }
+                    }
 
-                if (!coveredByOther && _currentGrid.GetCell(dotPos.y, dotPos.x).State == CellState.Dot)
-                {
-                    _currentGrid.SetCellState(dotPos.y, dotPos.x, CellState.Empty);
-                    _gridRenderer.UpdateCell(dotPos.y, dotPos.x, CellState.Empty);
+                    if (!coveredByOther && _currentGrid.GetCell(dotPos.y, dotPos.x).State == CellState.Dot)
+                    {
+                        _currentGrid.SetCellState(dotPos.y, dotPos.x, CellState.Empty);
+                        _gridRenderer.UpdateCell(dotPos.y, dotPos.x, CellState.Empty);
+                    }
                 }
             }
 
             _autoPlacedDots.Remove(crownPos);
+            _autoCoveredDots.Remove(crownPos);
         }
 
-        private bool IsAutoPlacedDot(int row, int col)
+        private bool IsAutoCoveredDot(int row, int col)
         {
+            if (_currentGrid.GetCell(row, col).State != CellState.Dot) return false;
+
             var pos = new Vector2Int(col, row);
-            foreach (var set in _autoPlacedDots.Values)
+            foreach (var set in _autoCoveredDots.Values)
                 if (set.Contains(pos)) return true;
             return false;
         }

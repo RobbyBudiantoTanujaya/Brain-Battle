@@ -135,6 +135,7 @@
 - [x] Fix: 2 AudioListener spam — removed AudioListener from AudioManager GO; each scene Camera provides its own
 - [x] AudioManager gotchas documented in CLAUDE.md §11
 - [x] Claude Code project-context auto-update hook (FileChanged → docs/PROJECT_SNAPSHOT.md) with safe filtering/throttling
+- [x] Fix: covered manual dot now locks like auto-dot — `KingsGameManager` tracks crown coverage separately from auto-created dots, so a pre-existing dot covered by row/col/region/adjacency can no longer be tapped or dragged away; removing the crown keeps the manual dot intact
 - [x] Reusable audit docs for next game: `reusable.md` + `promp_reusable.md` (prompt template)
 - [x] Reusable extraction roadmap created: `reusable_extraction_plan.md`
 - [ ] Haptic feedback (light tap on cell, medium on crown place, strong on victory)
