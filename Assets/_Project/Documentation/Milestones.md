@@ -61,6 +61,8 @@
 - [x] Bug prevention — null guards with informative error messages in TipsButton/RestartButton/VictoryPanel Awake()
 - [x] Bug prevention — KingsSceneValidator editor tool (BrainBattle/Validate Kings Scene): checks all SerializeField wiring, reports errors before play mode
 - [x] Bug prevention — CLAUDE.md updated with scene wiring rules, DesignSystem runtime-read rule, when to re-run scene builder
+- [x] Docs: manual Unity setup guide for SampleScene in `Assets/_Project/Documentation/kingsscenebuiler.md` (step-by-step hierarchy, wiring, anchors, events)
+- [x] Docs: quick checklist 1 halaman ditambahkan ke `Assets/_Project/Documentation/kingsscenebuiler.md`
 - [x] Fix: Grid border rendering rewritten — 2-pass explicit border lines (cells first, borders on top) eliminates DarkBg render-order overdraw bug that caused missing/inconsistent/uneven borders on device
 - [ ] Polish & internal build
 
@@ -89,6 +91,8 @@
     - [x] ScrollView Image: transparent; Viewport Image: Color.white (fixes Mask stencil clipping)
     - [x] LevelSelectSceneBuilder updated: prefab builder rewritten with SpriteImage child, grid 160×160/8px/16px
     - [x] LevelSelectButton prefab: SpriteImage child at index 0, root Color.clear, all 4 sprites pre-assigned
+- [x] Docs: manual Unity setup guide for LevelSelect in `Assets/_Project/Documentation/levelselectscenebuilder.md` (detailed steps + quick checklist)
+- [x] Docs: format `levelselectscenebuilder.md` disamakan dengan `kingsscenebuiler.md`
 - [x] Fix SampleScene game screen visuals
   - [x] Crown sprite: crown.png is multi-sprite sheet; load crown_1 (347×224 px actual crown) via LoadAll instead of crown_0 (35×33 px circle)
   - [x] KingsGridRenderer._crownSprite pre-assigned to crown_1 in Inspector (skips Awake Resources.Load)
@@ -130,6 +134,9 @@
 - [x] Fix: Audio clips null / no SFX — `LoadClips()` moved to lazy `EnsureClipsLoaded()` called on first `PlayXxx()` (audio engine ready by then); never call in `Awake()` during `BeforeSceneLoad`
 - [x] Fix: 2 AudioListener spam — removed AudioListener from AudioManager GO; each scene Camera provides its own
 - [x] AudioManager gotchas documented in CLAUDE.md §11
+- [x] Claude Code project-context auto-update hook (FileChanged → docs/PROJECT_SNAPSHOT.md) with safe filtering/throttling
+- [x] Reusable audit docs for next game: `reusable.md` + `promp_reusable.md` (prompt template)
+- [x] Reusable extraction roadmap created: `reusable_extraction_plan.md`
 - [ ] Haptic feedback (light tap on cell, medium on crown place, strong on victory)
 - [ ] Animations (crown pop-in scale tween, victory panel slide-up, star fill sequential)
 - [ ] Splash screen + app icon (1024x1024 master)

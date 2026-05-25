@@ -90,3 +90,5 @@ Thumbs.db
 .vscode/
 .ttadk/
 specs/doc_export/
+docs/PROJECT_SNAPSHOT.md
+docs/.PROJECT_SNAPSHOT.tmp
