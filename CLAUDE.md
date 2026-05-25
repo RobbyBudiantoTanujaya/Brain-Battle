@@ -251,8 +251,7 @@ Read tokens in code (e.g., `BuildCells()`, `Start()`), not in `[SerializeField]`
 5. **Never hardcode a hex color or pixel size** that has a DesignSystem token. Use `DesignSystem.X` at call time.
 6. **Never change logic when the task is visual** (and vice versa). Visual = rendering, colors, sizes, layout. Logic = game rules, constraints, state transitions.
 7. **Never remove a component without checking all scripts** that hold a SerializeField reference to it.
-8. **Never add AudioSource or audio logic** until Milestone 3 AudioManager is implemented. Audio is out of scope.
-9. **Never manually compute level data** (grids, region assignments, queen positions). Write algorithmic code, let Unity run it.
+8. **Never manually compute level data** (grids, region assignments, queen positions). Write algorithmic code, let Unity run it.
 10. **Never hardcode level cell data** in a ScriptableObject by hand. Always generate via `BrainBattle → Generate Kings Levels`.
 11. **Always run `BrainBattle → Validate Kings Scene`** after any SampleScene change. All errors must be 0 before play mode or build.
 12. **Always read `KingsLevelGeneration.md`** before any level generation task.
@@ -267,54 +266,15 @@ Read tokens in code (e.g., `BuildCells()`, `Start()`), not in `[SerializeField]`
 
 ## 6. Navigation Flow
 
-```
-App Launch
-  └─ LevelSelect scene loaded (Build index 0)
-       LevelSelectController.Start()
-         → BuildDiffPools() from _allLevels ScriptableObjects
-         → SelectTab(0) → RebuildGrid → spawn LevelSelectButton instances
-
-User taps a level button (Available or Completed)
-  └─ LevelSelectController.GoToLevel(lvl)
-       PlayerPrefs.SetInt("Kings_PendingLevel", lvl)
-       SceneManager.LoadScene("SampleScene")
-
-SampleScene loads
-  └─ KingsSceneBootstrap.Start()
-       yield return null  ← waits for CanvasScaler to run
-       if !PlayerPrefs.HasKey("Kings_PendingLevel"):
-         SceneManager.LoadScene("LevelSelect")  ← cold-boot / editor redirect
-       else:
-         level = PlayerPrefs.GetInt("Kings_PendingLevel")
-         PlayerPrefs.DeleteKey("Kings_PendingLevel")
-         LoadLevel(level)
-           → LevelLoader.GetLevel(level) → BuildGridFromLevel()
-           → KingsGameManager.StartGame(grid)
-             → KingsGridRenderer.RenderGrid()
-             → TutorialController.ShowTutorial() (skipped if Kings_TutorialSeen=1)
-
-In-game: HUD Menu button
-  └─ MenuButton.GoToLevelSelect()
-       PlayerPrefs.DeleteKey("Kings_PendingLevel")
-       SceneManager.LoadScene("LevelSelect")
-
-In-game: Win condition met
-  └─ KingsGameManager.HandleWin()
-       OnGameComplete?.Invoke(time, moveCount)
-     VictoryPanel.OnGameComplete()
-       saves Kings_Level_N_Stars (keeps best)
-       hides HUD, shows VictoryContent with animation
-
-VictoryPanel → "Next Level"
-  └─ PlayerPrefs.SetInt("Kings_PendingLevel", currentLevel + 1)
-       SceneManager.LoadScene("SampleScene")
-
-VictoryPanel → "Menu"
-  └─ SceneManager.LoadScene("LevelSelect")
-
-VictoryPanel → "Restart"
-  └─ hides VictoryContent, shows HUD, KingsGameManager.RestartGame()
-```
+- **App launch** → LevelSelect (index 0) → `LevelSelectController` builds difficulty pools, spawns `LevelSelectButton`s
+- **Tap level** → `Kings_PendingLevel` set in PlayerPrefs → `LoadScene("SampleScene")`
+- **SampleScene boot** → `KingsSceneBootstrap` waits `yield return null` → reads `Kings_PendingLevel` → `LoadLevel` → `StartGame` → `RenderGrid` → `ShowTutorial` (skipped if `Kings_TutorialSeen=1`)
+- **Cold boot / no key** → redirect to LevelSelect
+- **HUD Menu** → delete `Kings_PendingLevel` → `LoadScene("LevelSelect")`
+- **Win** → `HandleWin()` fires `OnGameComplete` → `VictoryPanel` hides HUD, shows VictoryContent, saves `Kings_Level_N_Stars` (keeps best)
+- **VictoryPanel Next** → set `Kings_PendingLevel = currentLevel+1` → `LoadScene("SampleScene")`
+- **VictoryPanel Menu** → `LoadScene("LevelSelect")`
+- **VictoryPanel Restart** → hide VictoryContent, show HUD, `RestartGame()`
 
 ---
 
@@ -379,6 +339,8 @@ VictoryPanel → "Restart"
 
 ## 9. Known Bug Patterns
 
+Hanya bug yang bisa recur setelah builder dijalankan ulang atau perubahan development biasa.
+
 | Bug                                | Root Cause                                              | Fix                                                                 |
 |------------------------------------|---------------------------------------------------------|---------------------------------------------------------------------|
 | VictoryContent visible on startup  | VictoryContent left Active in scene file                | KingsSceneBuilder sets `VictoryContent.SetActive(false)`. VictoryPanel.Start() also hides it as safety. |
@@ -387,17 +349,11 @@ VictoryPanel → "Restart"
 | Any button throws NullReferenceException on click | SerializeField not wired | Re-run `BrainBattle → Build Kings Scene`. |
 | Crown icon tiny (wrong sprite)     | `LoadAssetAtPath<Sprite>` on crown.png returns `crown_0` (35×33 circle) | Builder uses `LoadAllAssetsAtPath` to find sub-asset named `crown_1`. |
 | Cell taps not registering          | EventSystem using wrong input module                    | KingsSceneBuilder's EnsureEventSystem adds InputSystemUIInputModule via reflection. Re-run builder. |
-| Infinite redirect: SampleScene → LevelSelect loop | SyncSceneByPath used OpenSceneMode.Additive; a stray KingsSceneBootstrap appeared in LevelSelect | Fixed: uses OpenSceneMode.Single. Verify only one SceneBootstrap GO exists in SampleScene. |
 | Border widths inconsistent         | Stale serialized defaults, not reading DesignSystem at runtime | BuildCells() reads `DesignSystem.BorderRegionThickness` and `BorderCellThickness` directly. Never serialize these. |
 | Tutorial shown every session       | `Kings_TutorialSeen` PlayerPrefs key missing            | Set to 1 on tutorial completion. Reset by clearing PlayerPrefs in dev. |
 | UndoButton always greyed out       | `OnUndoStackChanged` event not subscribed               | Re-run builder; UndoButton subscribes in OnEnable/OnDisable. |
 | LevelLoader empty in device build  | `_allLevels` not populated before build                 | Run `BrainBattle → Generate Kings Levels` then `Build Kings Scene` before building. |
 | LevelSelectController tabs null    | `_tabButtons` not wired; fallback by name used          | Re-run `Build Level Select Scene`. Fallback logs a warning. |
-| BGM silent on first scene (LevelSelect) | `AudioSource.isPlaying` reports `true` on a freshly created source with `clip=NULL` during Unity 6 boot — `PlayBGM()` guard saw `isPlaying=true` and returned early without ever assigning the clip | Fixed in `PlayBGM()`: guard is `if (_bgmSource.isPlaying && _bgmSource.clip == _bgm) return` — checks both playing AND correct clip. Never guard on `isPlaying` alone for BGM. |
-| BGM silent when game starts from SampleScene directly | `PlayBGM()` was only called from `LevelSelectController.Start()` — skipped entirely when entering via SampleScene | Fixed: `AudioManager` auto-starts BGM via `SceneManager.sceneLoaded` (fires on every scene load) + `RuntimeInitializeOnLoadMethod(AfterSceneLoad)` (fires on first scene). No individual controller needs to call `PlayBGM()`. |
-| Audio clips null / no SFX at all | `LoadClips()` called during `RuntimeInitializeOnLoadMethod(BeforeSceneLoad)` — audio engine not yet initialised, `Resources.Load<AudioClip>` returns null | Fixed: lazy loading via `EnsureClipsLoaded()` — clips are loaded the first time any `PlayXxx()` method is called (scene is active, engine ready). Never call `LoadClips()` in `Awake()` when using `BeforeSceneLoad` bootstrap. |
-| 2 AudioListener warnings in console | `AudioListener` added to `[AudioManager]` GO — conflicts with scene Camera's listener | `AudioManager` must NEVER add an `AudioListener`. Each scene provides exactly one via its Camera. |
-| BGM not resuming after scene transition | `sceneLoaded` not subscribed yet when first scene fires its event | `OnEnable()` subscribes before the first scene loads (fires synchronously in `AddComponent` during `BeforeSceneLoad`). `AfterSceneLoad` callback provides fallback for the first scene. |
 
 ---
 
@@ -426,32 +382,28 @@ Every time a new task arrives:
 - All files under `Assets/_Project/`
 - PlayerPrefs keys in use: `Kings_PendingLevel`, `Kings_Grid`, `Kings_Time`, `Kings_Moves`, `Kings_Level_{N}_Stars`, `Kings_TutorialSeen`
 
-## 11. AudioManager — Setup Rules & Gotchas
+## 11. AudioManager — Setup Rules
 
 **File**: `Assets/_Project/Scripts/Shared/Audio/AudioManager.cs`
-**Namespace**: `BrainBattle.Shared`
 **Pattern**: DontDestroyOnLoad singleton, auto-created via `RuntimeInitializeOnLoadMethod`.
 
-### How it boots
+### Boot sequence
 | Phase | Callback | What happens |
 |---|---|---|
-| Before first scene loads | `RuntimeInitializeOnLoadMethod(BeforeSceneLoad)` → `AutoCreate()` | Creates `[AudioManager]` GO, `Awake()` runs: settings loaded, 8-source SFX pool built, `[BGMSource]` child created |
-| After first scene loads | `RuntimeInitializeOnLoadMethod(AfterSceneLoad)` → `AutoStartBGM()` | Calls `PlayBGM()` — first scene BGM start |
-| Every subsequent scene load | `SceneManager.sceneLoaded` → `OnSceneLoaded()` | Calls `PlayBGM()` — idempotent, no-op if already playing correct clip |
+| Before first scene | `BeforeSceneLoad` → `AutoCreate()` | Creates GO, builds 8-source SFX pool, creates `[BGMSource]` child |
+| After first scene | `AfterSceneLoad` → `AutoStartBGM()` | Calls `PlayBGM()` |
+| Every scene load | `SceneManager.sceneLoaded` → `OnSceneLoaded()` | Calls `PlayBGM()` — idempotent |
 
 ### Critical rules
-1. **Never call `LoadClips()` in `Awake()`** — during `BeforeSceneLoad` the audio engine is not yet initialised; `Resources.Load<AudioClip>` returns null silently. Always use lazy loading: `EnsureClipsLoaded()` called at the top of every `PlayXxx()` method.
-2. **Never guard `PlayBGM()` with `isPlaying` alone** — Unity 6 reports `isPlaying=true` on a freshly created `AudioSource` with no clip during certain boot scenarios. The correct guard is:
-   ```csharp
-   if (_bgmSource.isPlaying && _bgmSource.clip == _bgm) return;
-   ```
-3. **Never add `AudioListener` to the `[AudioManager]` GO** — each scene provides exactly one `AudioListener` via its Camera. Two listeners = console spam and unpredictable audio.
-4. **Never call `PlayBGM()` from individual scene controllers** — `AudioManager` manages BGM entirely through `sceneLoaded` + `AfterSceneLoad`. Calling it from `LevelSelectController.Start()` or `KingsGameManager.StartGame()` is redundant and was error-prone.
-5. **`PlayBGM()` is idempotent** — safe to call from anywhere; it does nothing if the correct BGM clip is already playing.
-6. **BGM fades in over 1 second** — uses `FadeBGMIn(1f)` coroutine with `Time.unscaledDeltaTime`. If BGM seems missing, check if fade just hasn't completed yet (it should be audible within ~0.2 s at low volume).
+1. **Never call `LoadClips()` in `Awake()`** — use lazy `EnsureClipsLoaded()` at top of every `PlayXxx()`. Audio engine not ready during `BeforeSceneLoad`.
+2. **Never guard `PlayBGM()` with `isPlaying` alone** — correct guard: `if (_bgmSource.isPlaying && _bgmSource.clip == _bgm) return;`
+3. **Never add `AudioListener` to `[AudioManager]` GO** — each scene provides one via its Camera.
+4. **Never call `PlayBGM()` from scene controllers** — `AudioManager` handles BGM entirely via `sceneLoaded` + `AfterSceneLoad`.
+5. **`PlayBGM()` is idempotent** — no-op if correct clip already playing.
+6. **BGM fades in over 1 second** — `FadeBGMIn(1f)` with `Time.unscaledDeltaTime`.
 
 ### Audio clip paths (Resources)
-| Clip field | Path |
+| Clip | Path |
 |---|---|
 | `_bgm` | `audio/BGM/bgm` |
 | `_tapClip` | `audio/SFX/tap_dot` |
@@ -463,9 +415,9 @@ Every time a new task arrives:
 | `_invalidPlaceVariantClip` | `audio/SFX/invalid_place_variant` |
 | `_victoryClip` | `audio/SFX/victory_sound` |
 
-### Android-specific
-- BGM (`bgm.mp3`) must use `loadType: 2` (Streaming) on Android — set in `.meta` platform override. Decompress On Load causes memory/timeout issues on Android.
-- `m_ClearDynamicDataOnBuild: 0` in `TMP Settings.asset` — must be 0 or TMP font atlas is stripped from Android APK and all button text disappears. **This alone is not enough** — font assets must also be Static with pre-baked atlas (see §7 Font atlas rules).
+### Android
+- BGM must use `loadType: 2` (Streaming) on Android — set in `.meta` platform override.
+- `m_ClearDynamicDataOnBuild: 0` in `TMP Settings.asset` — necessary but not sufficient (see §7 Font atlas rules).
 
 ---
 
