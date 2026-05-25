@@ -72,7 +72,6 @@ Do NOT mix these up. The convention is consistent but counter-intuitive (x=col n
 Scenes are **never hand-wired**. Use the builders:
 - `BrainBattle → Build Kings Scene` → rebuilds `SampleScene`
 - `BrainBattle → Build Level Select Scene` → rebuilds `LevelSelect`
-- `BrainBattle → Validate Kings Scene` → checks all SerializeField refs
 
 Run **Build Kings Scene** any time you add/change a SerializeField in a HUD or game script.
 

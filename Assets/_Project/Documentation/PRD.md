@@ -504,10 +504,9 @@ LevelData {
 
 ### 7.2 Pre-Build Checklist
 
-1. Run `BrainBattle → Validate Kings Scene` (all errors = 0)
-2. Run `BrainBattle → Generate Kings Levels` (if new levels)
-3. Verify TMP Settings: `m_ClearDynamicDataOnBuild = 0`
-4. Increment `AndroidBundleVersionCode` in ProjectSettings
+1. Run `BrainBattle → Generate Kings Levels` (if new levels)
+2. Verify TMP Settings: `m_ClearDynamicDataOnBuild = 0`
+3. Increment `AndroidBundleVersionCode` in ProjectSettings
 
 ### 7.3 Version
 
@@ -603,14 +602,13 @@ Debug.LogError("[ClassName] Description. Run BrainBattle → Build Scene.", this
 2. Never add SerializeField without re-running builder
 3. Never hardcode values with DesignSystem tokens
 4. Never change logic for visual tasks (and vice versa)
-5. Always run Validate after SampleScene changes
+5. Keep SampleScene wiring and build readiness checked after scene changes
 
 ### 9.5 Editor Tools
 
 | Menu | When |
 |------|------|
 | Build Kings Scene | After SerializeField changes |
-| Validate Kings Scene | After any scene change |
 | Build Level Select Scene | After layout changes |
 | Generate Kings Levels | To add new levels |
 

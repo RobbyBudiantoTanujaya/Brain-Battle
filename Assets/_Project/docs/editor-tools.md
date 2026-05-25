@@ -133,21 +133,15 @@ Stale levels (excess count) are deleted.
 
 ## KingsSceneValidator.cs
 
-**Entry point:** `BrainBattle → Validate Kings Scene`
-
-Checks that all SerializeField references in SampleScene are properly assigned.  
-Reports missing references as errors with the GameObject name and field name.
+Legacy editor validation helper for SampleScene SerializeField wiring.
 
 ```csharp
-[MenuItem("BrainBattle/Validate Kings Scene")]
 static void Validate();
 
 // Checks: KingsGameManager, KingsGridRenderer, LevelLoader,
 //         HUDController, UndoButton, RestartButton, TipsButton,
 //         MenuButton, VictoryPanel, KingsSceneBootstrap, AudioManager
 ```
-
-Run this before every QA session. Zero errors required before entering Play mode.
 
 ---
 

@@ -15,7 +15,6 @@ Milestones 1 and 2 are complete; Milestone 3 (polish, audio, monetization) is ne
 
 ### SampleScene — `Assets/Scenes/SampleScene.unity`
 Built and owned by **KingsSceneBuilder** (`BrainBattle → Build Kings Scene`).
-Validated by **KingsSceneValidator** (`BrainBattle → Validate Kings Scene`).
 Canvas reference resolution: **1170 × 2532** (iPhone 13 Pro Max), matchWidthOrHeight 0.5.
 
 ```
@@ -253,14 +252,13 @@ Read tokens in code (e.g., `BuildCells()`, `Start()`), not in `[SerializeField]`
 7. **Never remove a component without checking all scripts** that hold a SerializeField reference to it.
 8. **Never manually compute level data** (grids, region assignments, queen positions). Write algorithmic code, let Unity run it.
 10. **Never hardcode level cell data** in a ScriptableObject by hand. Always generate via `BrainBattle → Generate Kings Levels`.
-11. **Always run `BrainBattle → Validate Kings Scene`** after any SampleScene change. All errors must be 0 before play mode or build.
-12. **Always read `KingsLevelGeneration.md`** before any level generation task.
-13. **VictoryContent must be inactive at scene save** — KingsSceneBuilder sets `VictoryContent.SetActive(false)`. Never re-activate it in the editor.
-14. **Vector2Int convention** throughout the project: `x = col`, `y = row`. `GetCell(row, col)` takes (row, col). Never mix these up.
-15. **After completing any task**, update `Assets/_Project/Documentation/Milestones.md`.
-16. **Never write `AtlasPopulationMode.Dynamic` anywhere in code** — Dynamic TMP fonts fail silently on Android. Always use `Static` + pre-baked atlas. All font creation goes through `KingsSceneBuilder.GetOrCreateBodyFont()` / `GetOrCreateHudIconFont()` which handle this correctly.
-17. **Never call `TMP_FontAsset.CreateFontAsset()` without immediately calling `BakeFullCharset()` before switching to `Static`** — the order matters: bake while Dynamic → switch to Static. Reversing the order makes `TryAddCharacters` fail silently.
-18. **Never "fix" missing Android text by only editing `TMP Settings.asset`** — `m_ClearDynamicDataOnBuild=0` is necessary but not sufficient. Font assets must also be `Static` with pre-baked atlas. Correct fix: run `BrainBattle → Build Kings Scene`.
+11. **Always read `KingsLevelGeneration.md`** before any level generation task.
+12. **VictoryContent must be inactive at scene save** — KingsSceneBuilder sets `VictoryContent.SetActive(false)`. Never re-activate it in the editor.
+13. **Vector2Int convention** throughout the project: `x = col`, `y = row`. `GetCell(row, col)` takes (row, col). Never mix these up.
+14. **After completing any task**, update `Assets/_Project/Documentation/Milestones.md`.
+15. **Never write `AtlasPopulationMode.Dynamic` anywhere in code** — Dynamic TMP fonts fail silently on Android. Always use `Static` + pre-baked atlas. All font creation goes through `KingsSceneBuilder.GetOrCreateBodyFont()` / `GetOrCreateHudIconFont()` which handle this correctly.
+16. **Never call `TMP_FontAsset.CreateFontAsset()` without immediately calling `BakeFullCharset()` before switching to `Static`** — the order matters: bake while Dynamic → switch to Static. Reversing the order makes `TryAddCharacters` fail silently.
+17. **Never "fix" missing Android text by only editing `TMP Settings.asset`** — `m_ClearDynamicDataOnBuild=0` is necessary but not sufficient. Font assets must also be `Static` with pre-baked atlas. Correct fix: run `BrainBattle → Build Kings Scene`.
 
 ---
 
@@ -329,7 +327,6 @@ Read tokens in code (e.g., `BuildCells()`, `Start()`), not in `[SerializeField]`
 | Menu Path                                  | File                        | When to run                                                           | Side effects                                         |
 |--------------------------------------------|-----------------------------|-----------------------------------------------------------------------|------------------------------------------------------|
 | `BrainBattle → Build Kings Scene`          | `KingsSceneBuilder.cs`      | After adding SerializeField; after wiring bug; before QA build        | Deletes Canvas/GameManager/SceneBootstrap and rebuilds; saves scene |
-| `BrainBattle → Validate Kings Scene`       | `KingsSceneValidator.cs`    | After any SampleScene change; before play mode                        | Opens SampleScene if not active; shows dialog        |
 | `BrainBattle → Build Level Select Scene`   | `LevelSelectSceneBuilder.cs`| After layout change; after adding new SerializeField to LevelSelectController | Creates new scene file, rebuilds prefab, updates Build Settings |
 | `BrainBattle → Generate Kings Levels`      | `KingsLevelGenerator.cs`    | To add new levels (adds N per category on top of existing)            | Syncs `_allLevels` on LevelLoader + LevelSelectController in both scenes |
 | `BrainBattle → Fix Duplicate Levels`       | `KingsLevelGenerator.cs`    | If duplicate puzzle content is suspected                              | Re-generates duplicate assets with new seeds         |
@@ -367,7 +364,7 @@ Every time a new task arrives:
 4. **Logic task** (rules, state, win conditions): touch only logic classes; never change hierarchy or component layout.
 5. **If adding a SerializeField** to any script attached to a built scene: add it to the scene builder's WireAll() first, then re-run the builder.
 6. **If fixing a wiring bug**: do not patch it directly in the scene via MCP — patch the builder, then re-run it.
-7. **After any SampleScene change**: run `BrainBattle → Validate Kings Scene`. All errors = 0 before play mode.
+7. **Never use Unity MCP screenshots as final evidence** — for any screenshot request, ask the user to capture the Unity Game view manually and send it back for review.
 8. **After completing the task**: update `Assets/_Project/Documentation/Milestones.md`.
 
 ---

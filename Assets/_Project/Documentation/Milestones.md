@@ -59,7 +59,7 @@
 - [x] Fix: VictoryPanel _sceneBootstrap wired in SampleScene
 - [x] Fix: Grid border visibility — BuildCells reads border widths from DesignSystem at runtime (BorderRegionThickness=5px, BorderCellThickness=3px), no longer using stale serialized values
 - [x] Bug prevention — null guards with informative error messages in TipsButton/RestartButton/VictoryPanel Awake()
-- [x] Bug prevention — KingsSceneValidator editor tool (BrainBattle/Validate Kings Scene): checks all SerializeField wiring, reports errors before play mode
+- [x] Bug prevention — KingsSceneValidator editor tool: checks all SerializeField wiring and reports missing references in SampleScene
 - [x] Bug prevention — CLAUDE.md updated with scene wiring rules, DesignSystem runtime-read rule, when to re-run scene builder
 - [x] Docs: manual Unity setup guide for SampleScene in `Assets/_Project/Documentation/kingsscenebuiler.md` (step-by-step hierarchy, wiring, anchors, events)
 - [x] Docs: quick checklist 1 halaman ditambahkan ke `Assets/_Project/Documentation/kingsscenebuiler.md`

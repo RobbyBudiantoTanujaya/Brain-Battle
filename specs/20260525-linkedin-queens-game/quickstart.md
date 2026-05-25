@@ -268,4 +268,4 @@ After completing this quickstart:
 1. Run `/adk:sdd:tasks` to generate detailed task breakdown
 2. Implement tasks in priority order (M3 → M4 → M5 → M6)
 3. Update `Milestones.md` after each milestone completion
-4. Run `BrainBattle → Validate Kings Scene` before each build
+4. Review scene wiring and build readiness before each build

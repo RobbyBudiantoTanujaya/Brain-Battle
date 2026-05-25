@@ -133,7 +133,7 @@
 - [ ] T046 [P] Update `Milestones.md` to mark M4 complete
 - [ ] T047 [P] Update `Milestones.md` to mark M5 complete
 - [ ] T048 [P] Update `Milestones.md` to mark M6 complete
-- [ ] T049 Run `BrainBattle → Validate Kings Scene` to verify no errors
+- [ ] T049 Review SampleScene wiring/build readiness after scene-related changes
 - [ ] T050 Test full game flow: LevelSelect → Play → Win → Victory → Next Level with audio and ads
 - [ ] T051 Build Android APK and test on device (audio, ads, analytics)
 - [ ] T052 Build iOS and test on device (audio, ads, analytics)
@@ -251,5 +251,5 @@ With multiple developers:
 - US1-US3 already implemented (M1-M2 complete)
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
-- Run `BrainBattle → Validate Kings Scene` after any scene-related changes
+- Review SampleScene wiring/build readiness after any scene-related changes
 - Update `Milestones.md` after each milestone completion

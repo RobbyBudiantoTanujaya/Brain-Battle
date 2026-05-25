@@ -8,7 +8,6 @@ Dokumen ini menjelaskan cara **membangun `SampleScene` secara manual dari Unity 
 
 - Scene target: `Assets/Scenes/SampleScene.unity`
 - Jangan campur edit `LevelSelect` di task yang sama.
-- Setelah perubahan di SampleScene, jalankan **`BrainBattle -> Validate Kings Scene`**.
 - Saat scene disimpan, **`VictoryContent` wajib inactive**.
 
 ---
@@ -361,8 +360,7 @@ Catatan Android:
 3. `RestartConfirmPanel` button listeners terpasang.
 4. `VictoryContent` inactive di scene.
 5. EventSystem input module valid (satu saja).
-6. Jalankan `BrainBattle -> Validate Kings Scene` sampai error = 0.
-7. Save scene.
+6. Save scene.
 
 ---
 
@@ -420,8 +418,7 @@ Gunakan checklist ini kalau mau setup cepat tanpa baca detail penuh.
 
 ### H. Final validation
 
-- [ ] Jalankan `BrainBattle -> Validate Kings Scene`
-- [ ] Pastikan error = 0
+- [ ] Review wiring dan hierarchy final
 - [ ] Save scene
 
 ---
