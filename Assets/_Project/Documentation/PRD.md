@@ -2,818 +2,705 @@
 
 **Version:** 1.0
 **Last Updated:** 2026-05-25
-**Target Platform:** Android + iOS (Unity 6.0.75f1 LTS, 2D URP)
+**Platform:** Android + iOS (Unity 6.0.75f1 LTS, 2D URP)
 **Audience:** Internal Dev Team
 
 ---
 
-## Table of Contents
+## Contents
 
-1. [Product Overview](#1-product-overview)
-2. [Architecture Overview](#2-architecture-overview)
+1. [Game Overview](#1-game-overview)
+2. [Architecture](#2-architecture)
 3. [Core Systems](#3-core-systems)
-4. [Feature Specifications](#4-feature-specifications)
-5. [API Reference](#5-api-reference)
-6. [Asset Specifications](#6-asset-specifications)
-7. [Development Guidelines](#7-development-guidelines)
-8. [Roadmap](#8-roadmap)
+4. [Feature Status](#4-feature-status)
+5. [Component Reference](#5-component-reference)
+6. [Assets](#6-assets)
+7. [Build & Release](#7-build--release)
+8. [Testing](#8-testing)
+9. [Dev Guidelines](#9-dev-guidelines)
+10. [Roadmap](#10-roadmap)
 
 ---
 
-## 1. Product Overview
+## 1. Game Overview
 
-### 1.1 Game Concept
+### 1.1 Concept
 
-Brain Battle is a 2D mobile puzzle game collection. The first game, **Kings**, is an N×N crown-placement puzzle where players must place exactly one crown per row, column, and colored region, with no two crowns touching (8-directional adjacency).
+Brain Battle is a 2D mobile puzzle game collection. **Game #1: Kings** — an N×N crown-placement puzzle.
 
-### 1.2 Core Mechanics (Kings)
+**Rules:**
+| Constraint | Description |
+|------------|-------------|
+| Row | Exactly 1 crown per row |
+| Column | Exactly 1 crown per column |
+| Region | Exactly 1 crown per colored region |
+| Adjacency | No two crowns touch (8-directional) |
 
-| Rule | Description |
-|------|-------------|
-| **Row Constraint** | Exactly one crown per row |
-| **Column Constraint** | Exactly one crown per column |
-| **Region Constraint** | Exactly one crown per colored region |
-| **Adjacency Constraint** | No two crowns may touch (Chebyshev distance > 1) |
-
-### 1.3 Input Model
+### 1.2 Input
 
 | Input | Action |
 |-------|--------|
-| **Single tap** | Cycle cell: Empty → Dot → (double-tap for Crown) |
-| **Double tap** | Directly place Crown |
-| **Tap on Crown** | Clear crown (and its auto-dots) |
-| **Click + drag** | Place Dots continuously; never overwrites Crowns |
+| Single tap | Cycle: Empty → Dot → (double-tap for Crown) |
+| Double tap | Place Crown directly |
+| Tap Crown | Clear crown + auto-dots |
+| Drag | Place Dots continuously (never overwrites Crowns) |
 
-### 1.4 Auto-X Feature
+### 1.3 Auto-X
 
-When a crown is placed, the system automatically fills Dots in:
-- Same row and column (excluding the crown cell)
-- Same region (excluding the crown cell)
-- 8 neighboring cells (adjacency)
+When a crown is placed, auto-fill Dots at:
+- Same row/col (excluding crown cell)
+- Same region (excluding crown cell)
+- 8 adjacent cells
 
 Auto-dots are removed when their parent crown is cleared.
 
-### 1.5 Tech Stack
+### 1.4 Tech Stack
 
 | Component | Technology |
 |-----------|------------|
 | Engine | Unity 6.0.75f1 LTS |
-| Render Pipeline | 2D URP |
-| UI | Unity UI (Canvas) + TextMeshPro |
-| Architecture | MVC-like (Models separate from Views/Controllers) |
-| Data Storage | ScriptableObjects (levels), PlayerPrefs (progress) |
+| Render | 2D URP |
+| UI | Unity UI + TextMeshPro |
+| Data | ScriptableObjects (levels), PlayerPrefs (progress) |
 | Target | Android + iOS |
 
 ---
 
-## 2. Architecture Overview
+## 2. Architecture
 
-### 2.1 System Diagram
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         EDITOR TOOLS                            │
-│  KingsSceneBuilder │ LevelSelectSceneBuilder │ KingsLevelGenerator│
-│  KingsSceneValidator │ AudioManagerSetup                        │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼ generates/builds
-┌─────────────────────────────────────────────────────────────────┐
-│                       DATA LAYER                                │
-│  LevelData (ScriptableObject) ← LevelLoader → GridData          │
-│  PlayerPrefs: Kings_PendingLevel, Kings_Level_N_Stars, etc.     │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼ loads
-┌─────────────────────────────────────────────────────────────────┐
-│                       LOGIC LAYER                               │
-│  KingsGameManager ← ConstraintValidator (static)                │
-│  TutorialController │ LevelSelectController                     │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼ events
-┌─────────────────────────────────────────────────────────────────┐
-│                        UI LAYER                                 │
-│  KingsGridRenderer │ VictoryPanel │ HUDController               │
-│  LevelSelectButton │ UndoButton │ RestartButton │ TipsButton    │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     SERVICES LAYER                              │
-│  AudioManager (singleton, DontDestroyOnLoad)                    │
-│  DesignSystem (static tokens)                                   │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### 2.2 Data Flow
+### 2.1 Layers
 
 ```
-App Launch
-    │
-    ▼
-LevelSelect Scene (Build Index 0)
-    │  LevelSelectController.Start()
-    │  → BuildDiffPools() from LevelData[]
-    │  → SelectTab(0) → RebuildGrid()
-    │
-    ▼ User taps level button
-    │  PlayerPrefs.SetInt("Kings_PendingLevel", level)
-    │  SceneManager.LoadScene("SampleScene")
-    │
-    ▼
-SampleScene Loads
-    │  KingsSceneBootstrap.Start() → BootDeferred()
-    │  → Wait 1 frame (Canvas setup)
-    │  → Read Kings_PendingLevel, delete key
-    │  → LoadLevel(level)
-    │      → LevelLoader.GetLevel(level)
-    │      → LevelLoader.BuildGridFromLevel()
-    │      → KingsGameManager.StartGame(grid)
-    │
-    ▼
-Gameplay
-    │  User taps cell → KingsGridRenderer.OnCellTapped
-    │  → KingsGameManager processes move
-    │  → ConstraintValidator.ValidateMove()
-    │  → Apply state, render updates
-    │
-    ▼ Win condition
-    │  ConstraintValidator.CheckWin() == true
-    │  → OnGameComplete?.Invoke(time, moves)
-    │  → VictoryPanel shows
-    │  → Save stars to PlayerPrefs
-    │
-    ▼
-Victory Screen
-    ├── Next Level → Load next level or LevelSelect
-    ├── Restart → KingsGameManager.RestartGame()
-    └── Menu → SceneManager.LoadScene("LevelSelect")
+┌─────────────────────────────────────┐
+│ EDITOR TOOLS                        │
+│ KingsSceneBuilder, LevelSelectBuilder│
+│ KingsLevelGenerator, Validator      │
+└─────────────────────────────────────┘
+                │ generates
+                ▼
+┌─────────────────────────────────────┐
+│ DATA                                │
+│ LevelData (ScriptableObject)        │
+│ PlayerPrefs (progress/state)        │
+└─────────────────────────────────────┘
+                │ loads
+                ▼
+┌─────────────────────────────────────┐
+│ LOGIC                               │
+│ KingsGameManager                    │
+│ ConstraintValidator (static)        │
+│ TutorialController                  │
+└─────────────────────────────────────┘
+                │ events
+                ▼
+┌─────────────────────────────────────┐
+│ UI                                  │
+│ KingsGridRenderer                   │
+│ VictoryPanel, HUDController         │
+│ LevelSelectController               │
+└─────────────────────────────────────┘
+                │
+                ▼
+┌─────────────────────────────────────┐
+│ SERVICES                            │
+│ AudioManager (singleton)            │
+│ DesignSystem (static tokens)        │
+└─────────────────────────────────────┘
 ```
 
-### 2.3 Scene Structure
+### 2.2 Scene Flow
 
-| Scene | Path | Build Index | Builder |
-|-------|------|-------------|---------|
-| LevelSelect | `Assets/_Project/Scenes/LevelSelect.unity` | 0 | LevelSelectSceneBuilder |
-| SampleScene | `Assets/Scenes/SampleScene.unity` | 1 | KingsSceneBuilder |
+```
+Launch → LevelSelect (index 0)
+           │ tap level button
+           │ PlayerPrefs.SetInt("Kings_PendingLevel", n)
+           ▼
+         SampleScene (index 1)
+           │ KingsSceneBootstrap reads pending level
+           │ LevelLoader.BuildGridFromLevel()
+           ▼
+         Gameplay
+           │ win → VictoryPanel
+           ▼
+         Victory → Next Level / Menu / Restart
+```
+
+### 2.3 Scenes
+
+| Scene | Path | Builder |
+|-------|------|---------|
+| LevelSelect | `Assets/_Project/Scenes/LevelSelect.unity` | LevelSelectSceneBuilder |
+| SampleScene | `Assets/Scenes/SampleScene.unity` | KingsSceneBuilder |
 
 ---
 
 ## 3. Core Systems
 
-### 3.1 Grid/Cell Models
+### 3.1 Models
 
-**Location:** `Assets/_Project/Scripts/Core/Models/`
+**Location:** `Scripts/Core/Models/`
 
-#### CellState (enum)
-```csharp
-public enum CellState {
-    Empty = 0,
-    Dot = 1,
-    Crown = 2
-}
-```
+| Class | Purpose |
+|-------|---------|
+| `CellState` | Enum: Empty, Dot, Crown |
+| `CellData` | Position (row, col), state, regionId |
+| `RegionData` | RegionId, color, cell positions |
+| `GridData` | Size, 2D cell array, regions list |
 
-#### CellData
-```csharp
-public class CellData {
-    public int Row { get; }
-    public int Col { get; }
-    public CellState State { get; set; }
-    public int RegionId { get; set; }
-}
-```
-
-#### RegionData
-```csharp
-public class RegionData {
-    public int RegionId { get; }
-    public Color RegionColor { get; }
-    public List<Vector2Int> Cells { get; }
-}
-```
 **Convention:** `Vector2Int.x = col`, `Vector2Int.y = row`
-
-#### GridData
-```csharp
-public class GridData : ISerializationCallbackReceiver {
-    public int Size { get; }
-    public CellData[,] Cells { get; }
-    public List<RegionData> Regions { get; }
-
-    public CellData GetCell(int row, int col);
-    public void SetCellState(int row, int col, CellState state);
-    public List<Vector2Int> GetCrownPositions();
-    public void CycleState(int row, int col);
-}
-```
-Implements `ISerializationCallbackReceiver` for 2D array serialization.
-
----
 
 ### 3.2 Constraint Validation
 
-**File:** `Assets/_Project/Scripts/Core/Engine/ConstraintValidator.cs`
+**File:** `Scripts/Core/Engine/ConstraintValidator.cs`
 
-Static class with pure validation logic (no state, no MonoBehaviour).
+Static class — pure validation logic, no MonoBehaviour.
 
-#### ValidationResult
-```csharp
-public struct ValidationResult {
-    public bool IsValid;
-    public List<Vector2Int> ConflictPositions;
-}
 ```
+ValidateMove(grid, row, col, state) → ValidationResult
+  └─ Checks: row, col, region uniqueness + adjacency
 
-#### Public API
-```csharp
-public static class ConstraintValidator {
-    // Returns all conflict positions if placing crown violates rules
-    public static ValidationResult ValidateMove(GridData grid, int row, int col, CellState newState);
+CheckWin(grid) → bool
+  └─ True if exactly N crowns with no conflicts
 
-    // True when exactly N crowns, one per row/col/region, no adjacency
-    public static bool CheckWin(GridData grid);
-
-    // Returns all crown positions participating in any violation
-    public static List<Vector2Int> GetAllConflicts(GridData grid);
-}
+GetAllConflicts(grid) → List<Vector2Int>
+  └─ All positions violating rules
 ```
-
-#### Validation Rules
-
-| Constraint | Check |
-|------------|-------|
-| Row | Only one crown per row |
-| Column | Only one crown per column |
-| Region | Only one crown per `regionId` |
-| Adjacency | Chebyshev distance > 1 between all crowns |
-
----
 
 ### 3.3 Level Generation
 
 **Pipeline:** `LevelGeneratorService.GenerateLevel()`
 
 ```
-GenerateLevel(levelNumber, size, difficulty, seed)
-  │
-  ├─► KingsNQueensSolver.Solve(size, rng) → queens[]
-  │     Backtracking with randomized column order
-  │     Adjacency constraint: only check preceding row
-  │
-  ├─► KingsRegionBuilder.Build(size, queens, rng) → regionMap[,]
-  │     Multi-source BFS flood-fill from queen positions
-  │     Each queen seeds its own region
-  │     Guarantees 4-connected regions
-  │
-  ├─► PassesRegionSizeConstraints(size, regionMap)
-  │     No single-cell regions
-  │     Max 2 two-cell regions for 8×8+
-  │
-  ├─► KingsUniquenessVerifier.Verify(size, regionMap, queens, rng)
-  │     Solution counter (backtracking, early prune)
-  │     Border mutation using Tarjan's articulation point algorithm
-  │     Retry until exactly 1 solution
-  │
-  └─► BuildLevelData(...) → LevelData ScriptableObject
+1. KingsNQueensSolver.Solve(size, rng)
+   └─ Backtracking with adjacency constraint
+
+2. KingsRegionBuilder.Build(size, queens, rng)
+   └─ Multi-source BFS flood-fill from queens
+
+3. KingsUniquenessVerifier.Verify(size, regionMap, queens, rng)
+   └─ Count solutions, mutate borders until unique
+   └─ Uses Tarjan's articulation point algorithm
+
+4. BuildLevelData() → LevelData ScriptableObject
 ```
 
-#### Region Size Constraints
-- **No single-cell regions** — instantly reveals crown position
-- **Max 2 two-cell regions** for 8×8 and larger — maintains puzzle difficulty
+**Constraints:**
+- No single-cell regions
+- Max 2 two-cell regions for 8×8+
 
-#### Uniqueness Verification Algorithm
-1. Count all valid solutions (backtracking with early prune if count > 1)
-2. Find border cells between regions
-3. Use Tarjan's articulation point algorithm to find safe-to-move cells
-4. Mutate region map by swapping non-AP border cells
-5. Retry until exactly 1 solution exists
+### 3.4 Game State
+
+**File:** `Scripts/Games/Kings/Logic/KingsGameManager.cs`
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `_currentGrid` | GridData | Active puzzle state |
+| `_initialGrid` | GridData | For restart |
+| `_undoStack` | Stack<GridData> | Max 50 entries |
+| `_autoPlacedDots` | Dict<pos, set<pos>> | Track auto-dots per crown |
+| `_moveCount` | int | Moves this game |
+| `ElapsedSeconds` | float | Time tracking |
+
+### 3.5 Audio
+
+**File:** `Scripts/Shared/Audio/AudioManager.cs`
+
+Singleton via `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]`.
+
+| Feature | Detail |
+|---------|--------|
+| SFX Pool | 8 AudioSources, no GC during gameplay |
+| BGM | Dedicated source, 1s fade-in |
+| Loading | Lazy — clips load on first `PlayXxx()` call |
+| Persistence | Volume/mute via PlayerPrefs |
+
+### 3.6 Design System
+
+**File:** `Scripts/Shared/UI/BrainBattleDesignSystem.cs`
+
+Static class — all design tokens.
+
+| Category | Examples |
+|----------|----------|
+| Colors | Primary (#ff2d78), Background (#1a1a1e), Surface (#2a2a3e) |
+| Sizes | HUDHeight (80), TimerBarHeight (48), ButtonHeight (64) |
+| Grid | GridPadding (16), BorderRegionThickness (5), BorderCellThickness (3) |
+| Ratios | CrownSizeRatio (0.65), DotSizeRatio (0.25) |
+
+**Rule:** Never hardcode values that have a token. Read at call time.
 
 ---
 
-### 3.4 Game State Management
+## 4. Feature Status
 
-**File:** `Assets/_Project/Scripts/Games/Kings/Logic/KingsGameManager.cs`
+### Milestone 1: Core Game ✅
 
-#### State Fields
+- Grid/Cell models
+- ConstraintValidator + tests
+- KingsGridRenderer
+- KingsGameManager
+- LevelData + LevelLoader
+- Level generation pipeline
+- Undo/Restart/Tips UI
+- Tutorial overlay
+- Victory screen
+- Scene bootstrap
+- KingsSceneBuilder + Validator
+- DesignSystem
+
+### Milestone 2: Level Select ✅
+
+- LevelSelect screen
+- 3 difficulty tabs (Beginner/Expert/Impossible)
+- Progress bars
+- Level states (Locked/Available/Completed)
+- 35 level assets
+- Next level navigation
+
+### Milestone 3: Polish + Launch 🔄
+
+| Feature | Status |
+|---------|--------|
+| Audio system | ✅ |
+| Haptic feedback | ⬜ |
+| Animations | ⬜ |
+| Splash screen | ⬜ |
+| AdMob | ⬜ |
+| Firebase Analytics | ⬜ |
+| Settings screen | ⬜ |
+| Store assets | ⬜ |
+
+### Milestone 4: Content 📋
+
+- Daily Challenge
+- Infinite Mode
+- Push notifications
+- Leaderboard
+
+### Milestone 5: Game #2 📋
+
+TBD: Nonogram, Kakuro, or Sudoku variant
+
+### Milestone 6: Social 📋
+
+- Account system
+- Friend challenge
+- Real-time PvP
+
+---
+
+## 5. Component Reference
+
+Quick reference for key MonoBehaviour components and static utilities.
+
+### 5.1 KingsGameManager
+
+**File:** `Scripts/Games/Kings/Logic/KingsGameManager.cs`
+
+**Events:**
 ```csharp
-private GridData _currentGrid;
-private GridData _initialGrid;
-private Stack<GridData> _undoStack;  // Max 50 entries
-private Dictionary<Vector2Int, HashSet<Vector2Int>> _autoPlacedDots;
-private int _moveCount;
-private bool _timerActive;
-private bool _gameActive;
+event Action OnWin;
+event Action<float, int> OnGameComplete;        // (time, moves)
+event Action<List<Vector2Int>> OnConflictDetected;
+event Action<bool> OnUndoStackChanged;          // (hasUndo)
 ```
 
-#### Events
+**Methods:**
 ```csharp
-public event Action OnWin;
-public event Action<float, int> OnGameComplete;  // time, moves
-public event Action<List<Vector2Int>> OnConflictDetected;
-public event Action<bool> OnUndoStackChanged;
+void StartGame(GridData grid);
+void DoUndo();
+void RestartGame();
+List<(string, int)> GetHints();    // Up to 3 hints
 ```
 
-#### Public API
+**Properties:**
 ```csharp
-public void StartGame(GridData grid);
-public void DoUndo();
-public void RestartGame();
-public List<(string type, int index)> GetHints();  // Up to 3 hints
-public int MoveCount { get; }
-public float ElapsedSeconds { get; }
+int MoveCount { get; }
+float ElapsedSeconds { get; }
 ```
 
----
+### 5.2 ConstraintValidator
 
-### 3.5 UI System
+**File:** `Scripts/Core/Engine/ConstraintValidator.cs`
 
-#### Design System
+Static — no instance needed.
 
-**File:** `Assets/_Project/Scripts/Shared/UI/BrainBattleDesignSystem.cs`
-
-All colors, sizes, and spacings come from `DesignSystem.TokenName`.
-
-| Category | Tokens |
-|----------|--------|
-| **Colors** | Primary, PrimaryDark, Background, Surface, TextPrimary, TextSecondary, Overlay, BorderRegion, BorderCell, HUDBarGradientTop/Bottom, HUDBorderSeparator, HUDButtonBg, HUDMoveCounterBg, HUDTipsBg, HUDLabelText |
-| **Typography** | FontSizeSmall (12), FontSizeBody (16), FontSizeMedium (18), FontSizeLarge (20), FontSizeTitle (28), FontSizeHero (36) |
-| **Spacing** | SpacingXS (4), SpacingS (8), SpacingM (12), SpacingL (16), SpacingXL (24), SpacingXXL (32) |
-| **Radius** | RadiusS (8), RadiusM (12), RadiusL (16) |
-| **Sizes** | HUDHeight (80), TimerBarHeight (48), ButtonHeight (64), LevelButtonSize (100), LevelButtonGap (12) |
-| **Grid** | GridPadding (16), BorderRegionThickness (5), BorderCellThickness (3), CrownSizeRatio (0.65), DotSizeRatio (0.25) |
-
-#### Key Controllers
-
-| Controller | Responsibility |
-|------------|---------------|
-| **KingsGridRenderer** | Renders puzzle grid, handles tap/drag, manages conflict highlighting |
-| **LevelSelectController** | Tab switching, level pool building, progress calculation, navigation |
-| **VictoryPanel** | Displays win stats, saves stars, handles next level/restart/menu |
-| **HUDController** | Updates timer and move counter displays |
-| **TutorialController** | Shows 5-step tutorial on first play |
-
----
-
-### 3.6 Audio System
-
-**File:** `Assets/_Project/Scripts/Shared/Audio/AudioManager.cs`
-
-Singleton pattern with `DontDestroyOnLoad`. Auto-created via `RuntimeInitializeOnLoadMethod(BeforeSceneLoad)`.
-
-#### Initialization Sequence
-
-| Phase | Callback | Action |
-|-------|----------|--------|
-| Before scene load | `AutoCreate()` | Creates singleton GO |
-| Awake | — | Loads settings, builds SFX pool, initializes BGM source |
-| After scene load | `AutoStartBGM()` | Starts BGM playback |
-
-#### SFX Pool
-- 8 AudioSources for concurrent SFX
-- `NextPooledSource()` finds idle or steals busy source
-
-#### Public API
 ```csharp
-public static AudioManager Instance { get; }
-
-// SFX playback
-public void PlayTap();           // Random: tap_dot or tap_dot_variant
-public void PlayAutoDot();       // Random pitch 0.9-1.1, volume 0.4×
-public void PlayButtonTap();
-public void PlayInvalidPlace();  // Random: invalid_place or invalid_place_variant
-public void PlayVictory();
-
-// BGM control
-public void PlayBGM();   // Idempotent, 1s fade-in
-public void StopBGM();
-
-// Volume/Mute (persisted via PlayerPrefs)
-public void SetSFXVolume(float volume);  // 0-1
-public void SetBGMVolume(float volume);
-public void SetSFXMute(bool muted);
-public void SetBGMMute(bool muted);
+static ValidationResult ValidateMove(GridData grid, int row, int col, CellState newState);
+static bool CheckWin(GridData grid);
+static List<Vector2Int> GetAllConflicts(GridData grid);
 ```
 
-#### PlayerPrefs Keys
-| Key | Default | Purpose |
-|-----|---------|---------|
-| Audio_SFXVolume | 1.0 | SFX volume |
-| Audio_BGMVolume | 0.7 | BGM volume |
-| Audio_SFXMuted | false | SFX mute state |
-| Audio_BGMMuted | false | BGM mute state |
-
----
-
-## 4. Feature Specifications
-
-### Milestone 1: Core Game ✅ COMPLETE
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Grid/Cell Models | ✅ | CellData, CellState, GridData, RegionData |
-| ConstraintValidator | ✅ | Row/col/region/adjacency validation |
-| Unit Tests | ✅ | ConstraintValidator tests |
-| KingsGridRenderer | ✅ | Dynamic grid rendering, tap/drag |
-| KingsGameManager | ✅ | State, undo, auto-X, win detection |
-| LevelData + LevelLoader | ✅ | ScriptableObject schema |
-| LevelGeneratorService | ✅ | NQueensSolver, RegionBuilder, UniquenessVerifier |
-| KingsLevelGenerator | ✅ | Editor tool: BrainBattle ▶ Generate Kings Levels |
-| Undo/Restart/Tips UI | ✅ | UndoButton, RestartButton, TipsButton |
-| Tutorial Overlay | ✅ | 5-step tutorial, PlayerPrefs flag |
-| Victory Screen | ✅ | Time, moves, stars, next level |
-| Scene Bootstrap | ✅ | KingsSceneBootstrap handles level loading |
-| KingsSceneBuilder | ✅ | Editor tool: BrainBattle ▶ Build Kings Scene |
-| KingsSceneValidator | ✅ | Editor tool: BrainBattle ▶ Validate Kings Scene |
-| BrainBattleDesignSystem | ✅ | All design tokens centralized |
-
----
-
-### Milestone 2: Level Generation + Progression ✅ COMPLETE
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Level Select Screen | ✅ | LevelSelectController, LevelSelectButton prefab |
-| 3 Difficulty Tabs | ✅ | Beginner (1-12), Expert (13-24), Impossible (25-35) |
-| Progress Bars | ✅ | Per-difficulty completion percentage |
-| Level States | ✅ | Locked, Available, Completed (sprite-based) |
-| Unlock Logic | ✅ | Per-tab independent, first level always available |
-| Play Button | ✅ | Loads first available level in active tab |
-| Scene Navigation | ✅ | PlayerPrefs-based level passing |
-| 35 Level Assets | ✅ | Generated via KingsLevelGenerator |
-| Next Level Navigation | ✅ | Stays within same difficulty, falls back to LevelSelect |
-| Visual Polish | ✅ | Dark navy + hot pink design language |
-
----
-
-### Milestone 3: Polish + Monetization + Launch v1.0 🔄 IN PROGRESS
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Audio System | ✅ | AudioManager singleton, SFX pool, BGM fade |
-| BGM Auto-Start Fix | ✅ | Handles Unity 6 `isPlaying` quirk |
-| Audio Lazy Loading | ✅ | Clips load on first PlayXxx() call |
-| Haptic Feedback | ⬜ | Light tap, medium crown, strong victory |
-| Animations | ⬜ | Crown pop-in, victory slide-up, star fill |
-| Splash Screen | ⬜ | 1024×1024 app icon |
-| AdMob Integration | ⬜ | Interstitial + rewarded ads |
-| Hint System | ⬜ | Gated behind rewarded ad |
-| Firebase Analytics | ⬜ | level_start, level_complete, ad_watched |
-| Firebase Crashlytics | ⬜ | Crash reporting |
-| Onboarding | ⬜ | Enforce level 1 first |
-| Settings Screen | ⬜ | Sound/music/haptic toggles, reset progress |
-| Store Assets | ⬜ | Screenshots, descriptions |
-| Internal Build | ⬜ | Closed testing → production |
-
----
-
-### Milestone 4: Content + Retention 📋 PLANNED
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Daily Challenge | ⬜ | Seeded RNG by date, global puzzle |
-| Daily Streak | ⬜ | PlayerPrefs, reset on skip |
-| Infinite Mode | ⬜ | Procedural 5-10 size |
-| Level Rating | ⬜ | Optional 1-5 star user rating |
-| Push Notifications | ⬜ | Daily challenge reminder |
-| Leaderboard | ⬜ | Daily challenge top-10 |
-| 35 Level Expansion | ⬜ | Impossible to level 50 |
-
----
-
-### Milestone 5: Game #2 📋 PLANNED
-
-**Puzzle Type:** TBD (Nonogram, Kakuro, or Sudoku variant)
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Game Design Doc | ⬜ | Constraint validator design |
-| Grid Renderer | ⬜ | Reuse component pattern from Kings |
-| Level Generator | ⬜ | 35 levels |
-| Level Select Integration | ⬜ | New tab in existing controller |
-| M3 Feature Parity | ⬜ | Audio, haptic, analytics, monetization |
-
----
-
-### Milestone 6: Social + PvP 📋 PLANNED
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Account System | ⬜ | Firebase Auth (Google/Apple Sign-In) |
-| Friend Challenge | ⬜ | Async puzzle sharing |
-| Real-time PvP | ⬜ | Race mode (Photon or Firebase RTDB) |
-| Matchmaking | ⬜ | ELO-based queue |
-| PvP Rewards | ⬜ | Cosmetic crown skins (no pay-to-win) |
-
----
-
-## 5. API Reference
-
-### 5.1 ConstraintValidator (Static)
-
+**ValidationResult:**
 ```csharp
-// Validate a potential move
-ValidationResult result = ConstraintValidator.ValidateMove(grid, row, col, CellState.Crown);
-if (!result.IsValid) {
-    // result.ConflictPositions contains all violating positions
-}
-
-// Check win condition
-if (ConstraintValidator.CheckWin(grid)) {
-    // Puzzle solved
-}
-
-// Get all conflicts for highlighting
-List<Vector2Int> conflicts = ConstraintValidator.GetAllConflicts(grid);
-```
-
-### 5.2 KingsGameManager
-
-```csharp
-// Events
-gameManager.OnGameComplete += (time, moves) => { /* handle win */ };
-gameManager.OnConflictDetected += (conflicts) => { /* highlight conflicts */ };
-gameManager.OnUndoStackChanged += (hasUndo) => { /* update undo button */ };
-
-// Methods
-gameManager.StartGame(grid);
-gameManager.DoUndo();
-gameManager.RestartGame();
-var hints = gameManager.GetHints();  // Returns up to 3 hints
-
-// Properties
-int moves = gameManager.MoveCount;
-float time = gameManager.ElapsedSeconds;
+bool IsValid;
+List<Vector2Int> ConflictPositions;
 ```
 
 ### 5.3 KingsGridRenderer
 
-```csharp
-// Events
-gridRenderer.OnCellTapped += (row, col) => { /* handle tap */ };
-gridRenderer.OnCellDragEntered += (row, col) => { /* handle drag */ };
+**File:** `Scripts/Games/Kings/UI/KingsGridRenderer.cs`
 
-// Methods
-gridRenderer.RenderGrid(gridData);
-gridRenderer.HighlightConflicts(positions);
-gridRenderer.UpdateCell(row, col, cellData);
+**Events:**
+```csharp
+event Action<int, int> OnCellTapped;        // (row, col)
+event Action<int, int> OnCellDragEntered;   // (row, col)
+```
+
+**Methods:**
+```csharp
+void RenderGrid(GridData gridData);
+void HighlightConflicts(List<Vector2Int> positions);
+void UpdateCell(int row, int col, CellData cellData);
 ```
 
 ### 5.4 LevelLoader
 
+**File:** `Scripts/Games/Kings/Data/LevelLoader.cs`
+
 ```csharp
-// Get level by number
-LevelData level = levelLoader.GetLevel(5);
-
-// Build runtime grid from level
-GridData grid = levelLoader.BuildGridFromLevel(level);
-
-// Get next level in same difficulty
-int? next = levelLoader.GetNextLevelNumberInDifficulty(currentLevel);
+LevelData GetLevel(int levelNumber);
+GridData BuildGridFromLevel(LevelData level);
+int? GetNextLevelNumberInDifficulty(int currentLevel);
 ```
 
 ### 5.5 AudioManager
 
+**File:** `Scripts/Shared/Audio/AudioManager.cs`
+
+**Access:** `AudioManager.Instance`
+
 ```csharp
-// SFX (via singleton)
-AudioManager.Instance.PlayTap();
-AudioManager.Instance.PlayAutoDot();
-AudioManager.Instance.PlayButtonTap();
-AudioManager.Instance.PlayInvalidPlace();
-AudioManager.Instance.PlayVictory();
+// SFX
+void PlayTap();
+void PlayAutoDot();
+void PlayButtonTap();
+void PlayInvalidPlace();
+void PlayVictory();
 
 // BGM
-AudioManager.Instance.PlayBGM();   // Idempotent
-AudioManager.Instance.StopBGM();
+void PlayBGM();    // Idempotent, 1s fade-in
+void StopBGM();
 
-// Volume/Mute
-AudioManager.Instance.SetSFXVolume(0.8f);
-AudioManager.Instance.SetBGMVolume(0.5f);
-AudioManager.Instance.SetSFXMute(true);
+// Settings
+void SetSFXVolume(float volume);    // 0-1
+void SetBGMVolume(float volume);
+void SetSFXMute(bool muted);
+void SetBGMMute(bool muted);
+```
+
+### 5.6 VictoryPanel
+
+**File:** `Scripts/Shared/UI/VictoryPanel.cs`
+
+Subscribes to `KingsGameManager.OnGameComplete`.
+
+**Flow:**
+1. Hide HUD, show VictoryContent
+2. Calculate stars (based on time + hints)
+3. Save `Kings_Level_{N}_Stars` (keep best)
+4. Animate entrance
+
+### 5.7 LevelSelectController
+
+**File:** `Scripts/Shared/UI/LevelSelectController.cs`
+
+```csharp
+void SelectTab(int tabIndex);    // 0=Beginner, 1=Expert, 2=Impossible
+void GoToLevel(int levelNumber);
+void RebuildGrid();
 ```
 
 ---
 
-## 6. Asset Specifications
+## 6. Assets
 
 ### 6.1 Sprites
 
-**Location:** `Assets/_Project/Resources/Sprites/`
+**Location:** `Resources/Sprites/`
 
-| File | Type | Usage |
-|------|------|-------|
-| `dot.png` | Single sprite | Cell dot marker |
-| `crown.png` | Multi-sprite sheet | Crown icons (use `crown_1` sub-asset, 347×224) |
-| `main_menu_bg.png` | Multi-sprite | Scene backgrounds |
-| `victory_screen_bg.png` | Single sprite | Victory panel background |
-| `UIRoundedRect.png` | 9-sliced (128×128) | Button/panel backgrounds |
-| `level_available.png` | Single sprite | Level button available state |
-| `level_completed.png` | Single sprite | Level button completed state |
-| `level_active.png` | Single sprite | Level button active state |
-| `level_lock.png` | Single sprite | Level button locked state |
+| File | Usage |
+|------|-------|
+| `dot.png` | Cell dot marker |
+| `crown.png` | Multi-sprite — use `crown_1` (347×224) |
+| `main_menu_bg.png` | Scene backgrounds |
+| `victory_screen_bg.png` | Victory panel background |
+| `UIRoundedRect.png` | 9-sliced button/panel bg |
+| `level_available.png` | Level button states |
+| `level_completed.png` | |
+| `level_lock.png` | |
 
-**Loading Pattern:**
+**Load Pattern:**
 ```csharp
-// Runtime (Resources.Load)
+// Multi-sprite
 var sprites = Resources.LoadAll<Sprite>("Sprites/crown");
 Sprite crown = sprites.First(s => s.name == "crown_1");
 
-// Editor (AssetDatabase)
-Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(
-    "Assets/_Project/Resources/Sprites/dot.png");
+// Single sprite
+Sprite dot = Resources.Load<Sprite>("Sprites/dot");
 ```
 
 ### 6.2 Fonts
 
-**Location:** `Assets/_Project/Resources/Fonts/`
+**Location:** `Resources/Fonts/`
 
-| File | Type | Usage |
-|------|------|-------|
-| `Outfit-Regular.ttf` | TTF source | Body font (must have `includeFontData = true`) |
-| `Outfit SDF.asset` | TMP Static | Body text, 100 chars pre-baked (ASCII 32-126) |
-| `HUDIcons SDF.asset` | TMP Static | Icons: ↩ ↺ ☰ ✦ ★ ☆ (10 glyphs pre-baked) |
-| `SegoeSym.ttf` | TTF fallback | Icon font source |
+| File | Usage |
+|------|-------|
+| `Outfit SDF.asset` | Body text (Static, pre-baked) |
+| `HUDIcons SDF.asset` | Icons: ★ ☆ ↩ ↺ ☰ (Static) |
+| `Outfit-Regular.ttf` | Source (must have `includeFontData=true`) |
 
-**Critical Rules:**
+**Android Critical:**
 - Both SDF assets MUST be `AtlasPopulationMode.Static`
-- `TMP Settings.asset → m_ClearDynamicDataOnBuild` MUST be `0`
-- Never call `TMP_FontAsset.CreateFontAsset()` without `BakeFullCharset()` first
+- `TMP Settings → m_ClearDynamicDataOnBuild` MUST be `0`
+- Never switch Dynamic → Static without baking first
 
-### 6.3 Audio Clips
+### 6.3 Audio
 
-**Location:** `Assets/_Project/Resources/audio/`
+**Location:** `Resources/audio/`
 
-| Path | Type | Usage |
-|------|------|-------|
-| `BGM/bgm.mp3` | BGM | Background music (Streaming on Android) |
-| `SFX/tap_dot.ogg` | SFX | Tap sound |
-| `SFX/tap_dot_variant.ogg` | SFX | Tap variant |
-| `SFX/auto_dot.ogg` | SFX | Auto-dot placement |
-| `SFX/auto_dot_variant.ogg` | SFX | Auto-dot variant |
-| `SFX/button_tap.wav` | SFX | Button click |
-| `SFX/invalid_place.ogg` | SFX | Invalid placement |
-| `SFX/invalid_place_variant.ogg` | SFX | Invalid variant |
-| `SFX/victory_sound.ogg` | SFX | Victory fanfare |
+| Path | Usage |
+|------|-------|
+| `BGM/bgm.mp3` | Background music |
+| `SFX/tap_dot.ogg` | Tap sounds |
+| `SFX/auto_dot.ogg` | Auto-dot placement |
+| `SFX/button_tap.wav` | Button click |
+| `SFX/invalid_place.ogg` | Invalid placement |
+| `SFX/victory_sound.ogg` | Victory fanfare |
+
+Each tap/auto/invalid has `_variant` clips for variety.
 
 ### 6.4 Level Data
 
-**Location:** `Assets/_Project/ScriptableObjects/Kings/Levels/`
+**Location:** `ScriptableObjects/Kings/Levels/`
 
-**Naming Convention:** `Kings_{Difficulty}_{Number:D2}.asset`
-- Examples: `Kings_Beginner_01.asset`, `Kings_Expert_06.asset`
+**Naming:** `Kings_{Difficulty}_{Number:D2}.asset`
+- `Kings_Beginner_01.asset`
+- `Kings_Expert_06.asset`
+- `Kings_Impossible_01.asset`
 
 **Schema:**
 ```csharp
-public sealed class LevelData : ScriptableObject {
-    [SerializeField] private int _levelNumber;      // 1, 2, 3...
-    [SerializeField] private string _difficulty;    // "Beginner", "Expert", "Impossible"
-    [SerializeField] private int _gridSize;         // 4, 5, 6, 8, or 10
-    [SerializeField] private RegionDefinition[] _regions;
-    [SerializeField] private Vector2Int[] _solution;  // Queen positions
+LevelData {
+    int LevelNumber;
+    string Difficulty;      // "Beginner", "Expert", "Impossible"
+    int GridSize;           // 4, 5, 6, 8, or 10
+    RegionDefinition[] Regions;
+    Vector2Int[] Solution;  // Queen positions
+}
+```
 
-    [Serializable]
-    public class RegionDefinition {
-        [SerializeField] private int _regionId;
-        [SerializeField] private Color _color;
-        [SerializeField] private Vector2Int[] _cells;
+---
+
+## 7. Build & Release
+
+### 7.1 Platforms
+
+| Platform | Backend | Status |
+|----------|---------|--------|
+| Android | IL2CPP (ARM64) | Primary |
+| iOS | IL2CPP | Primary |
+| Standalone | Mono | Dev only |
+
+### 7.2 Pre-Build Checklist
+
+1. Run `BrainBattle → Validate Kings Scene` (all errors = 0)
+2. Run `BrainBattle → Generate Kings Levels` (if new levels)
+3. Verify TMP Settings: `m_ClearDynamicDataOnBuild = 0`
+4. Increment `AndroidBundleVersionCode` in ProjectSettings
+
+### 7.3 Version
+
+| Field | Location |
+|-------|----------|
+| Bundle Version | `ProjectSettings/ProjectSettings.asset` |
+| Android Version Code | Same file |
+| Unity Version | `ProjectSettings/ProjectVersion.txt` |
+
+### 7.4 Packages
+
+| Package | Version | Usage |
+|---------|---------|-------|
+| com.unity.render-pipelines.universal | 17.0.4 | 2D URP |
+| com.unity.inputsystem | 1.19.0 | New input |
+| com.unity.test-framework | 1.6.0 | Tests |
+| com.coplaydev.unity-mcp | git | Editor tools |
+
+---
+
+## 8. Testing
+
+### 8.1 Framework
+
+Unity Test Framework (NUnit)
+
+### 8.2 Location
+
+```
+Assets/_Project/Tests/EditMode/
+├── BrainBattle.Tests.EditMode.asmdef
+└── ConstraintValidatorTests.cs
+```
+
+### 8.3 Naming Convention
+
+| Type | Pattern |
+|------|---------|
+| Class | `<ClassBeingTested>Tests` |
+| Method | `<MethodName>_<Scenario>_<ExpectedBehavior>` |
+
+**Example:**
+```csharp
+[TestFixture]
+public class ConstraintValidatorTests
+{
+    [Test]
+    public void ValidateMove_RowConflict_ReturnsInvalidAndReportsExistingCrown()
+    {
+        // Arrange-Act-Assert
     }
 }
 ```
 
-### 6.5 Prefabs
+### 8.4 Running Tests
 
-**Location:** `Assets/_Project/Prefabs/`
-
-| Prefab | Usage |
-|--------|-------|
-| `LevelSelectButton.prefab` | Level grid button, 4 state sprites pre-assigned |
+- **Editor:** Window → General → Test Runner → EditMode
+- **CLI:** Unity batch mode with `-runTests`
 
 ---
 
-## 7. Development Guidelines
+## 9. Dev Guidelines
 
-### 7.1 Coding Standards
+### 9.1 Coding Standards
 
-- **No MonoBehaviour** on pure logic classes (`ConstraintValidator`, `GridData`, `LevelGeneratorService`)
-- **`[SerializeField]`** for Inspector references; never `public` fields
-- **Events via `System.Action`**, not `UnityEvent`
-- **Coroutines or C# Task** for async; never mix both in same class
-- **Namespace convention:** `BrainBattle.Core`, `BrainBattle.Kings`, `BrainBattle.Shared`
+- No MonoBehaviour on pure logic (`ConstraintValidator`, `GridData`)
+- `[SerializeField]` for Inspector refs; never `public` fields
+- Events via `System.Action`, not `UnityEvent`
+- Async via Coroutines only (no async/await)
+- Namespaces: `BrainBattle.Core`, `BrainBattle.Kings`, `BrainBattle.Shared`
 
-### 7.2 Scene Wiring Rules
+### 9.2 Event Pattern
 
-| Rule | Reason |
-|------|--------|
-| **Never fix SerializeField by hand** | Always run scene builder |
-| **Never run wrong builder** | KingsSceneBuilder → SampleScene only; LevelSelectSceneBuilder → LevelSelect only |
-| **Never edit both scenes in one task** | Confirm scope first |
-| **Never add SerializeField without re-running builder** | New field will be null at runtime |
-| **Always run Validate Kings Scene after SampleScene change** | Catch wiring errors before play |
+```csharp
+// Publisher
+public event Action<int> OnSomething;
 
-### 7.3 Design System Rules
+// Subscriber
+void OnEnable()  => _source.OnSomething += Handle;
+void OnDisable() => _source.OnSomething -= Handle;
+```
 
-| Rule | Reason |
-|------|--------|
-| **Never hardcode hex colors** | Use `DesignSystem.Primary` etc. |
-| **Never hardcode pixel sizes with tokens** | Use `DesignSystem.HUDHeight` etc. |
-| **Read tokens at call time** | Not in `[SerializeField]` defaults |
+### 9.3 Logging Pattern
 
-### 7.4 Editor Tools
+```csharp
+Debug.LogError("[ClassName] Description. Run BrainBattle → Build Scene.", this);
+//                                                             ↑ context for click-to-navigate
+```
 
-| Menu Item | When to Run |
-|-----------|-------------|
-| `BrainBattle ▶ Build Kings Scene` | After adding SerializeField, before QA build |
-| `BrainBattle ▶ Validate Kings Scene` | After any SampleScene change |
-| `BrainBattle ▶ Build Level Select Scene` | After layout change, new SerializeField |
-| `BrainBattle ▶ Generate Kings Levels` | To add new levels |
-| `BrainBattle ▶ Setup Audio Manager` | In first-loaded scene (LevelSelect) |
+### 9.4 Critical Rules
 
-### 7.5 PlayerPrefs Keys
+1. Never fix SerializeField by hand — run scene builder
+2. Never add SerializeField without re-running builder
+3. Never hardcode values with DesignSystem tokens
+4. Never change logic for visual tasks (and vice versa)
+5. Always run Validate after SampleScene changes
+
+### 9.5 Editor Tools
+
+| Menu | When |
+|------|------|
+| Build Kings Scene | After SerializeField changes |
+| Validate Kings Scene | After any scene change |
+| Build Level Select Scene | After layout changes |
+| Generate Kings Levels | To add new levels |
+
+### 9.6 PlayerPrefs Keys
 
 | Key | Type | Purpose |
 |-----|------|---------|
-| `Kings_PendingLevel` | int | Level to load on scene transition |
-| `Kings_Level_{N}_Stars` | int (0-3) | Best star rating for level N |
-| `Kings_TutorialSeen` | int (0/1) | Tutorial completion flag |
-| `Kings_Grid` | JSON | Auto-save current grid state |
-| `Kings_Time` | float | Auto-save elapsed time |
-| `Kings_Moves` | int | Auto-save move count |
-| `Audio_SFXVolume` | float | SFX volume (0-1) |
-| `Audio_BGMVolume` | float | BGM volume (0-1) |
-| `Audio_SFXMuted` | int (0/1) | SFX mute state |
-| `Audio_BGMMuted` | int (0/1) | BGM mute state |
+| `Kings_PendingLevel` | int | Level to load |
+| `Kings_Level_{N}_Stars` | int | Best stars (0-3) |
+| `Kings_TutorialSeen` | int | Tutorial done |
+| `Audio_SFXVolume` | float | SFX volume |
+| `Audio_BGMVolume` | float | BGM volume |
+| `Audio_SFXMuted` | int | SFX mute |
+| `Audio_BGMMuted` | int | BGM mute |
 
 ---
 
-## 8. Roadmap
+## 10. Roadmap
 
-### M3 Remaining (v1.0 Launch)
+### M3 Remaining (v1.0)
 
-1. **Haptic Feedback** — Integrate Unity Vibration API
-2. **Animations** — DOTween or custom coroutines for:
-   - Crown pop-in scale tween
-   - Victory panel slide-up
-   - Star fill sequential animation
-3. **Splash Screen** — Unity player settings + 1024×1024 icon
-4. **AdMob** — Interstitial (between levels) + Rewarded (hint unlock)
-5. **Firebase** — Analytics + Crashlytics integration
-6. **Settings Screen** — Sound/music/haptic toggles, reset progress
-7. **Store Assets** — Screenshots, descriptions for Google Play + App Store
+- Haptic feedback
+- Animations (crown pop, victory slide, star fill)
+- Splash screen + app icon
+- AdMob (interstitial + rewarded)
+- Firebase Analytics + Crashlytics
+- Settings screen
+- Store assets (screenshots, descriptions)
 
-### M4 Planning (Content + Retention)
+### M4
 
-- Daily Challenge seed generation
-- Streak tracking logic
-- Infinite mode procedural generation
-- Push notification scheduling
-- Leaderboard integration (Google Play Games / Game Center)
+- Daily Challenge (seeded by date)
+- Infinite Mode (procedural)
+- Push notifications
+- Leaderboard
 
-### M5 Decision Point
+### M5
 
-**Select Puzzle Type:** Nonogram, Kakuro, or Sudoku variant
-- Consider: constraint complexity, visual rendering needs, level generation difficulty
-- Decision needed before M5 work begins
+**Decision needed:** Select Game #2 type
+- Nonogram
+- Kakuro
+- Sudoku variant
 
-### M6 Long-term (Social + PvP)
+### M6
 
-- Firebase Auth integration
-- Real-time multiplayer architecture decision (Photon vs Firebase RTDB)
-- ELO matchmaking system
-- Cosmetic rewards (no pay-to-win)
+- Firebase Auth
+- Friend challenge
+- Real-time PvP (Photon or Firebase RTDB)
+- Cosmetic rewards
 
 ---
 
-## Appendix A: Known Issues & Fixes
+## Appendix: Known Issues
 
-| Issue | Root Cause | Fix |
-|-------|------------|-----|
-| VictoryContent visible on startup | Left Active in scene | Builder sets inactive; VictoryPanel.Start() re-hides |
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| VictoryContent visible on startup | Left Active in scene | Builder sets inactive |
 | Grid rect zero | CanvasScaler not run | Bootstrap waits 1 frame |
-| Crown icon tiny | Wrong sprite loaded | Use `LoadAllAssetsAtPath`, find `crown_1` |
-| Cell taps not registering | Wrong input module | Builder adds InputSystemUIInputModule |
-| BGM silent on boot | Unity 6 `isPlaying` quirk | Guard: `isPlaying && clip == _bgm` |
-| Audio clips null | Early loading in Awake | Lazy load on first PlayXxx() |
-| TMP text missing on Android | Dynamic atlas stripped | Static mode + pre-baked + `m_ClearDynamicDataOnBuild=0` |
+| Crown tiny | Wrong sprite loaded | Use `crown_1` sub-asset |
+| BGM silent | Unity 6 `isPlaying` quirk | Guard: `isPlaying && clip == _bgm` |
+| TMP missing on Android | Dynamic atlas stripped | Static + pre-baked + `m_ClearDynamicDataOnBuild=0` |
 
 ---
 
-## Appendix B: File Reference
+## Appendix: File Structure
 
-| Category | Path |
-|----------|------|
-| **Models** | `Assets/_Project/Scripts/Core/Models/` |
-| **Engine** | `Assets/_Project/Scripts/Core/Engine/` |
-| **Generators** | `Assets/_Project/Scripts/Core/Generators/` |
-| **Kings Logic** | `Assets/_Project/Scripts/Games/Kings/Logic/` |
-| **Kings UI** | `Assets/_Project/Scripts/Games/Kings/UI/` |
-| **Kings Data** | `Assets/_Project/Scripts/Games/Kings/Data/` |
-| **Shared UI** | `Assets/_Project/Scripts/Shared/UI/` |
-| **Shared Audio** | `Assets/_Project/Scripts/Shared/Audio/` |
-| **Editor Tools** | `Assets/_Project/Editor/` |
-| **Level Assets** | `Assets/_Project/ScriptableObjects/Kings/Levels/` |
-| **Sprites** | `Assets/_Project/Resources/Sprites/` |
-| **Fonts** | `Assets/_Project/Resources/Fonts/` |
-| **Audio** | `Assets/_Project/Resources/audio/` |
-| **Prefabs** | `Assets/_Project/Prefabs/` |
-| **Documentation** | `Assets/_Project/Documentation/` |
+```
+Assets/_Project/
+├── Scripts/
+│   ├── Core/
+│   │   ├── Models/          # CellData, GridData, RegionData
+│   │   ├── Engine/          # ConstraintValidator
+│   │   └── Generators/      # Level generation pipeline
+│   ├── Games/Kings/
+│   │   ├── Logic/           # KingsGameManager, Bootstrap
+│   │   ├── UI/              # KingsGridRenderer, HUDController
+│   │   └── Data/            # LevelData, LevelLoader
+│   └── Shared/
+│       ├── UI/              # DesignSystem, VictoryPanel
+│       └── Audio/           # AudioManager
+├── Editor/                  # Scene builders, validators
+├── Tests/EditMode/          # NUnit tests
+├── Resources/
+│   ├── Sprites/
+│   ├── Fonts/
+│   └── audio/
+├── ScriptableObjects/Kings/Levels/
+├── Prefabs/
+├── Scenes/
+└── Documentation/
+    ├── PRD.md
+    └── Milestones.md
+```
