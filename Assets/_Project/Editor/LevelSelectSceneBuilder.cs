@@ -121,7 +121,6 @@ namespace BrainBattle.Editor
         {
             var canvas = r.Canvas.transform;
 
-            // ── Background: full-screen main_menu_bg sprite ───────────────────────
             var bg    = UI("Background", canvas);
             Stretch(bg);
             var bgImg    = bg.AddComponent<Image>();
@@ -130,8 +129,13 @@ namespace BrainBattle.Editor
             if (bgSprite != null) { bgImg.sprite = bgSprite; bgImg.color = Color.white; }
             else bgImg.color = ColBg;
 
+            var safeAreaRoot = UI("SafeAreaRoot", canvas);
+            Stretch(safeAreaRoot);
+            safeAreaRoot.AddComponent<SafeAreaFitter>();
+            var layoutRoot = safeAreaRoot.transform;
+
             // ── Header ────────────────────────────────────────────────────────────
-            var header = UI("Header", canvas);
+            var header = UI("Header", layoutRoot);
             Anchor(header, 0f, 0.90f, 1f, 1.00f);
             header.AddComponent<Image>().color = ColPanel;
             var headerTmp   = MakeTMP("Title", header.transform, "LEVEL SELECT");
@@ -141,7 +145,7 @@ namespace BrainBattle.Editor
             Stretch(headerTmp.gameObject);
 
             // ── Tab row: 3 flush equal-width tabs ─────────────────────────────────
-            var tabRow = UI("TabRow", canvas);
+            var tabRow = UI("TabRow", layoutRoot);
             Anchor(tabRow, 0f, 0.82f, 1f, 0.90f); // 60px approx in 1920 ref
 
             string[] tabNames  = { "Beginner", "Expert", "Impossible" };
@@ -174,7 +178,7 @@ namespace BrainBattle.Editor
 
             // ── Progress row: one group per tab ───────────────────────────────────
             // Compact 48px strip — track is 6px, centred vertically.
-            var progRow = UI("ProgressRow", canvas);
+            var progRow = UI("ProgressRow", layoutRoot);
             Anchor(progRow, 0f, 0.775f, 1f, 0.820f);
 
             var progFills = new Image[3];
@@ -219,7 +223,7 @@ namespace BrainBattle.Editor
             r.ProgressTexts = progTexts;
 
             // ── Scroll view ───────────────────────────────────────────────────────
-            var scrollGO = UI("LevelScrollView", canvas);
+            var scrollGO = UI("LevelScrollView", layoutRoot);
             Anchor(scrollGO, 0.03f, 0.06f, 0.97f, 0.775f);
             scrollGO.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0f);
 
@@ -263,7 +267,7 @@ namespace BrainBattle.Editor
             r.GridContent    = contentGO.transform;
 
             // ── Play button: full width (−32 px), 64 px tall, 16 px from bottom ──
-            var play   = MakeButton("PlayButton", canvas, "PLAY");
+            var play   = MakeButton("PlayButton", layoutRoot, "PLAY");
             var playRt = play.gameObject.GetComponent<RectTransform>();
             playRt.anchorMin        = new Vector2(0f, 0f);
             playRt.anchorMax        = new Vector2(1f, 0f);
