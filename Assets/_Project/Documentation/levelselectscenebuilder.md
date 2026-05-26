@@ -57,7 +57,7 @@ Buat GameObject `Canvas`:
    - `GraphicRaycaster`
 2. `CanvasScaler`:
    - UI Scale Mode: `Scale With Screen Size`
-   - Reference Resolution: `1080 x 1920`
+   - Reference Resolution: `1170 x 2532`
    - Match: `0.5`
 
 ---
@@ -126,7 +126,7 @@ Child `Title`:
 - `TextMeshProUGUI`
 - Text: `LEVEL SELECT`
 - Alignment: `Center`
-- FontSize: `72`
+- FontSize: `86`
 - FontStyle: `Bold`
 - Stretch full parent
 
@@ -143,6 +143,7 @@ Isi 3 tab flush (tanpa gap):
 Setiap tab:
 - Komponen: `Image`, `Button`, child `Label` (TMP)
 - Label center full stretch
+- FontSize: `45`
 - Tab default active: `BeginnerTab`
   - background: `(1.00, 0.176, 0.471, 1)`
   - label: putih + bold
@@ -163,7 +164,7 @@ Isi 3 group:
 Per group:
 - Root group anchor per 1/3 area (dengan margin horizontal kecil)
 - Child `Track`:
-  - tinggi `6`
+  - tinggi `7`
   - center vertical
   - lebar 80% group
   - color `(0.165, 0.165, 0.243, 1)`
@@ -175,7 +176,7 @@ Per group:
 - Child `PctText{i}`:
   - anchor `(0.82,0)` ke `(1,1)`
   - Alignment: `MidlineRight`
-  - FontSize: `28`
+  - FontSize: `33`
   - Text awal `0%`
 
 ### 7.5 `LevelScrollView`
@@ -186,7 +187,7 @@ Root `LevelScrollView`:
 - Komponen `ScrollRect`:
   - `horizontal = false`
   - `vertical = true`
-  - `scrollSensitivity = 30`
+  - `scrollSensitivity = 36`
 
 Child `Viewport`:
 - Stretch full
@@ -196,9 +197,9 @@ Child `Viewport`:
 Child `Content` (di dalam Viewport):
 - Anchor min `(0,1)`, max `(1,1)`, pivot `(0.5,1)`
 - Tambah `GridLayoutGroup`:
-  - padding `16,16,16,16`
-  - cellSize `300 x 300`
-  - spacing `12 x 12`
+  - padding `19,19,19,19`
+  - cellSize `359 x 359`
+  - spacing `14 x 14`
   - constraint `FixedColumnCount = 3`
 - Tambah `ContentSizeFitter`:
   - vertical `PreferredSize`
@@ -213,10 +214,10 @@ Koneksi `ScrollRect`:
 - Buat button `PlayButton`
 - Anchor min `(0,0)`, max `(1,0)`, pivot `(0.5,0)`
 - Offsets:
-  - `offsetMin = (16,16)`
-  - `offsetMax = (-16,80)` (tinggi 64)
+  - `offsetMin = (19,19)`
+  - `offsetMax = (-19,95)` (tinggi 76)
 - Label: `PLAY`
-  - FontSize `52`
+  - FontSize `62`
   - FontStyle `Bold`
 - Style pink (background accent)
 
@@ -303,7 +304,7 @@ Gunakan checklist ini kalau mau setup cepat tanpa baca detail penuh.
 ### B. Canvas setup
 
 - [ ] `Canvas` -> Screen Space Overlay
-- [ ] `CanvasScaler` -> `1080 x 1920`, Match `0.5`
+- [ ] `CanvasScaler` -> `1170 x 2532`, Match `0.5`
 - [ ] Child urutan: `Background`, `Header`, `TabRow`, `ProgressRow`, `LevelScrollView`, `PlayButton`
 
 ### C. ScrollView
@@ -311,7 +312,7 @@ Gunakan checklist ini kalau mau setup cepat tanpa baca detail penuh.
 - [ ] `ScrollRect` vertical only
 - [ ] `Viewport` punya `Mask(showMaskGraphic=false)`
 - [ ] `Viewport` image putih
-- [ ] `Content` pakai GridLayout 3 kolom, cell `300x300`, gap `12`, padding `16`
+- [ ] `Content` pakai GridLayout 3 kolom, cell `359x359`, gap `14`, padding `19`
 
 ### D. Prefab dan sprite
 

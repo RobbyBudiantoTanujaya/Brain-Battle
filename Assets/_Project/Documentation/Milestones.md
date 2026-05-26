@@ -106,8 +106,9 @@
   - [x] LevelSelectController: tab active=#ff2d78 bold white, inactive=#2a2a3e gray #888888 text (color + fontStyle set dynamically)
   - [x] VictoryPanel: star labels changed to ★ U+2605 unicode
   - [x] KingsSceneBuilder: TimerBar 48px NavyBg, HUD 72px NavyBg, VictoryPanel dark overlay + 85% wide + pink buttons + ★★★ in pink, StylePinkButton helper
-  - [x] LevelSelectSceneBuilder: flush tabs (no gap), 6px progress track, main_menu_bg background, grid 300×300/12px, PLAY button full-width pink 64px
-  - [x] LevelSelectButton prefab: label centred (full anchor), fontSize 56px bold
+  - [x] LevelSelectSceneBuilder: flush tabs (no gap), 7px progress track, main_menu_bg background, grid 359×359/14px, PLAY button full-width pink 76px
+  - [x] LevelSelectButton prefab: label centred (full anchor), fontSize 67px bold
+  - [x] LevelSelect scaled for 1170×2532 reference resolution (CanvasScaler + proportional UI sizing): header/title/tab/progress text, progress track 7px, grid 359×359 with 14px gap, padding 19px, PLAY height 76px, button label/checkmark 67px
 - [x] Level generator: 6 new levels per run, all grid sizes, no overwrites (System.IO discovery)
 - [x] LevelSelectController: data-driven _allLevels (removed hardcoded DiffPools); BuildDiffPools() at runtime
 - [x] LevelSelectSceneBuilder: wires _allLevels on LevelSelectController after generation

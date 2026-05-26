@@ -11,7 +11,7 @@ Milestones 1 and 2 are complete; Milestone 3 (polish, audio, monetization) is ne
 
 ---
 
-## 2. Scene Structure
+## 2. Scene Structures
 
 ### SampleScene — `Assets/Scenes/SampleScene.unity`
 Built and owned by **KingsSceneBuilder** (`BrainBattle → Build Kings Scene`).
@@ -67,7 +67,7 @@ Canvas reference resolution: **1170 × 2532** (iPhone 13 Pro Max), matchWidthOrH
 
 ### LevelSelect — `Assets/_Project/Scenes/LevelSelect.unity`
 Built and owned by **LevelSelectSceneBuilder** (`BrainBattle → Build Level Select Scene`).
-Canvas reference resolution: **1080 × 1920**, matchWidthOrHeight 0.5.
+Canvas reference resolution: **1170 × 2532** (iPhone 13 Pro Max), matchWidthOrHeight 0.5.
 Build order: LevelSelect = index 0, SampleScene = index 1.
 
 ```
@@ -84,7 +84,7 @@ Build order: LevelSelect = index 0, SampleScene = index 1.
       PctText                  TextMeshProUGUI
   LevelScrollView               Image(transparent), ScrollRect
     Viewport                   Image(white), Mask
-      Content                  GridLayoutGroup (3 cols, 300×300, gap 12), ContentSizeFitter
+      Content                  GridLayoutGroup (3 cols, 359×359, gap 14), ContentSizeFitter
   PlayButton                    Image (pink), Button → Label (TMP "PLAY")
 [LevelSelectController]         LevelSelectController
 [Main Camera]                   Camera (orthographic, dark bg), AudioListener

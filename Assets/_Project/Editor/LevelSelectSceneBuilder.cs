@@ -99,7 +99,7 @@ namespace BrainBattle.Editor
 
             var scaler                 = go.AddComponent<CanvasScaler>();
             scaler.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080f, 1920f);
+            scaler.referenceResolution = new Vector2(1170f, 2532f);
             scaler.matchWidthOrHeight  = 0.5f;
 
             go.AddComponent<GraphicRaycaster>();
@@ -135,7 +135,7 @@ namespace BrainBattle.Editor
             Anchor(header, 0f, 0.90f, 1f, 1.00f);
             header.AddComponent<Image>().color = ColPanel;
             var headerTmp   = MakeTMP("Title", header.transform, "LEVEL SELECT");
-            headerTmp.fontSize  = 72f;
+            headerTmp.fontSize  = 86f;
             headerTmp.fontStyle = FontStyles.Bold;
             headerTmp.alignment = TextAlignmentOptions.Center;
             Stretch(headerTmp.gameObject);
@@ -163,7 +163,7 @@ namespace BrainBattle.Editor
 
                 var lbl       = MakeTMP("Label", cell.transform, tabNames[i]);
                 lbl.alignment = TextAlignmentOptions.Center;
-                lbl.fontSize  = 38f;
+                lbl.fontSize  = 45f;
                 lbl.fontStyle = active ? FontStyles.Bold   : FontStyles.Normal;
                 lbl.color     = active ? Color.white        : ColTxtGray;
                 Stretch(lbl.gameObject);
@@ -193,7 +193,7 @@ namespace BrainBattle.Editor
                 trackRt.anchorMax       = new Vector2(0.80f, 0.5f);
                 trackRt.pivot           = new Vector2(0.5f,  0.5f);
                 trackRt.anchoredPosition = Vector2.zero;
-                trackRt.sizeDelta       = new Vector2(0f, 6f);
+                trackRt.sizeDelta       = new Vector2(0f, 7f);
                 track.AddComponent<Image>().color = new Color(0.165f, 0.165f, 0.243f, 1f);
 
                 // Fill (Image.Type.Filled, Horizontal)
@@ -210,7 +210,7 @@ namespace BrainBattle.Editor
                 // % text — right-aligned, takes the remaining 20% of the group.
                 var pct       = MakeTMP($"PctText{i}", group.transform, "0%");
                 pct.alignment = TextAlignmentOptions.MidlineRight;
-                pct.fontSize  = 28f;
+                pct.fontSize  = 33f;
                 pct.color     = Color.white;
                 Anchor(pct.gameObject, 0.82f, 0f, 1.00f, 1f);
                 progTexts[i]  = pct;
@@ -226,7 +226,7 @@ namespace BrainBattle.Editor
             var scroll               = scrollGO.AddComponent<ScrollRect>();
             scroll.horizontal        = false;
             scroll.vertical          = true;
-            scroll.scrollSensitivity = 30f;
+            scroll.scrollSensitivity = 36f;
 
             // Viewport — MUST be Color.white for Mask stencil to clip children.
             var viewportGO = UI("Viewport", scrollGO.transform);
@@ -245,9 +245,9 @@ namespace BrainBattle.Editor
             contentRt.sizeDelta  = new Vector2(0f, 0f);
 
             var grid             = contentGO.AddComponent<GridLayoutGroup>();
-            grid.padding         = new RectOffset(16, 16, 16, 16);
-            grid.cellSize        = new Vector2(300f, 300f);
-            grid.spacing         = new Vector2(12f, 12f);
+            grid.padding         = new RectOffset(19, 19, 19, 19);
+            grid.cellSize        = new Vector2(359f, 359f);
+            grid.spacing         = new Vector2(14f, 14f);
             grid.startCorner     = GridLayoutGroup.Corner.UpperLeft;
             grid.startAxis       = GridLayoutGroup.Axis.Horizontal;
             grid.childAlignment  = TextAnchor.UpperCenter;
@@ -268,13 +268,13 @@ namespace BrainBattle.Editor
             playRt.anchorMin        = new Vector2(0f, 0f);
             playRt.anchorMax        = new Vector2(1f, 0f);
             playRt.pivot            = new Vector2(0.5f, 0f);
-            playRt.offsetMin        = new Vector2(16f,  16f);
-            playRt.offsetMax        = new Vector2(-16f, 80f); // 64 px height
+            playRt.offsetMin        = new Vector2(19f,  19f);
+            playRt.offsetMax        = new Vector2(-19f, 95f); // 76 px height
             playRt.anchoredPosition = new Vector2(0f, 0f);
 
             StylePinkButton(play);
             var playLbl      = play.GetComponentInChildren<TextMeshProUGUI>();
-            playLbl.fontSize  = 52f;
+            playLbl.fontSize  = 62f;
             playLbl.fontStyle = FontStyles.Bold;
             r.PlayButton = play;
         }
@@ -317,7 +317,7 @@ namespace BrainBattle.Editor
             var lblTmp       = lblGO.AddComponent<TextMeshProUGUI>();
             lblTmp.text      = "1";
             lblTmp.alignment = TextAlignmentOptions.Center;
-            lblTmp.fontSize  = 56f;
+            lblTmp.fontSize  = 67f;
             lblTmp.color     = Color.white;
             lblTmp.fontStyle = FontStyles.Bold;
 
@@ -332,7 +332,7 @@ namespace BrainBattle.Editor
             var ckTmp       = ckGO.AddComponent<TextMeshProUGUI>();
             ckTmp.text      = "✓";
             ckTmp.alignment = TextAlignmentOptions.Center;
-            ckTmp.fontSize  = 56f;
+            ckTmp.fontSize  = 67f;
             ckTmp.color     = Color.white;
             ckGO.SetActive(false);
 

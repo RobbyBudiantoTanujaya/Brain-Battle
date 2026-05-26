@@ -76,7 +76,7 @@ Select **Canvas**.
 |---|---|---|
 | Canvas | Render Mode | Screen Space – Overlay |
 | Canvas Scaler | UI Scale Mode | Scale With Screen Size |
-| Canvas Scaler | Reference Resolution | 1080 × 1920 |
+| Canvas Scaler | Reference Resolution | 1170 × 2532 |
 | Canvas Scaler | Match | 0.5 (Width–Height balance) |
 | Graphic Raycaster | (keep defaults) | — |
 

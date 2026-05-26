@@ -84,7 +84,7 @@ Completely rebuilds `Assets/_Project/Scenes/LevelSelect.unity` and
 LevelSelect
 ├── Main Camera      (Camera + AudioListener, orthographic)
 ├── EventSystem
-├── Canvas (1080×1920 reference, match=0.5)
+├── Canvas (1170×2532 reference, match=0.5)
 │   ├── Background   (main_menu_bg.png)
 │   ├── Header       (panel + "LEVEL SELECT" title)
 │   ├── TabRow       (3 tab buttons: Beginner / Expert / Impossible)
