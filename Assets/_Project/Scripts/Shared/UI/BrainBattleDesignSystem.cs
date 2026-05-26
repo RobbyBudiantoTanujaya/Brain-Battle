@@ -36,6 +36,9 @@ namespace BrainBattle.Shared.UI
         public static readonly int FontSizeTitle  = 28;
         public static readonly int FontSizeHero   = 36;
         public static readonly int FontSizeDisplay = 42;
+        public static readonly int LevelSelectTitleFontSize = 192;
+        public static readonly int LevelSelectTabFontSize = 60;
+        public static readonly int LevelSelectProgressFontSize = 52;
 
         // Spacing
         public static readonly float SpacingXS  = 4f;
@@ -56,6 +59,8 @@ namespace BrainBattle.Shared.UI
         public static readonly float ButtonHeight      = 64f;
         public static readonly float TabHeight         = 60f;
         public static readonly float LevelSelectTabHeight = 72f;
+        public static readonly float LevelSelectHeaderHeight = 360f;
+        public static readonly float LevelSelectProgressRowHeight = 96f;
         public static readonly float ProgressBarHeight = 6f;
         public static readonly float LevelButtonSize   = 100f;
         public static readonly float LevelButtonGap    = 12f;

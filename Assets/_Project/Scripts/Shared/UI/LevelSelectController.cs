@@ -17,11 +17,11 @@ namespace BrainBattle.Shared.UI
 
         private static readonly string[] DifficultyNames = { "Beginner", "Expert", "Impossible" };
 
-        private static readonly Color ColTabActive      = DesignSystem.Primary;
-        private static readonly Color ColTabInactive    = DesignSystem.Surface;
+        private static readonly Color ColTabActive      = new Color(1f, 0.18f, 0.47f, 1f);
+        private static readonly Color ColTabInactive    = new Color(0f, 0f, 0f, 0f);
         private static readonly Color ColProgressFill   = DesignSystem.Primary;
-        private static readonly Color ColTabTxtActive   = DesignSystem.TextPrimary;
-        private static readonly Color ColTabTxtInactive = DesignSystem.TextSecondary;
+        private static readonly Color ColTabTxtActive   = new Color(1f, 1f, 1f, 1f);
+        private static readonly Color ColTabTxtInactive = new Color(1f, 1f, 1f, 0.35f);
 
         // ── Inspector ─────────────────────────────────────────────────────────────
 
@@ -169,18 +169,23 @@ namespace BrainBattle.Shared.UI
                 if (Stars(lvl) > 0) done++;
 
             float pct = pool.Length > 0 ? (float)done / pool.Length : 0f;
-
-            if (_progressFill != null)
-            {
-                _progressFill.fillAmount = pct;
-                _progressFill.color = ColProgressFill;
-            }
-
-            if (_progressText != null)
-                _progressText.text = $"{Mathf.RoundToInt(pct * 100)}%";
+            int percent = Mathf.RoundToInt(pct * 100f);
 
             if (_progressLabel != null)
                 _progressLabel.text = $"{DifficultyNames[_activeTab]} progress";
+
+            if (_progressText != null)
+                _progressText.text = $"{percent}%";
+
+            if (_progressFill != null)
+            {
+                _progressFill.color = ColProgressFill;
+                Canvas.ForceUpdateCanvases();
+                var fillRect = _progressFill.rectTransform;
+                var trackRect = fillRect.parent as RectTransform;
+                if (trackRect != null)
+                    fillRect.sizeDelta = new Vector2(trackRect.rect.width * pct, 0f);
+            }
         }
 
         // ── Level grid ────────────────────────────────────────────────────────────

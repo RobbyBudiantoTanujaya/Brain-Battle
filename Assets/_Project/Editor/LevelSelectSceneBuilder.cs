@@ -136,54 +136,88 @@ namespace BrainBattle.Editor
 
             // ── Header ────────────────────────────────────────────────────────────
             var header = UI("Header", layoutRoot);
-            Anchor(header, 0f, 0.89f, 1f, 1.00f);
+            var headerRt = header.GetComponent<RectTransform>();
+            headerRt.anchorMin = new Vector2(0f, 1f);
+            headerRt.anchorMax = new Vector2(1f, 1f);
+            headerRt.pivot = new Vector2(0.5f, 1f);
+            headerRt.offsetMin = new Vector2(0f, -DesignSystem.LevelSelectHeaderHeight);
+            headerRt.offsetMax = Vector2.zero;
             header.AddComponent<Image>().color = ColPanel;
 
+            var headerLayout = header.AddComponent<VerticalLayoutGroup>();
+            headerLayout.childAlignment = TextAnchor.MiddleCenter;
+            headerLayout.childControlWidth = true;
+            headerLayout.childForceExpandWidth = true;
+            headerLayout.spacing = 4f;
+            headerLayout.padding = new RectOffset(0, 0, 48, 16);
+
             var eyebrowTmp = MakeTMP("Eyebrow", header.transform, "BRAIN BATTLE");
-            eyebrowTmp.fontSize  = DesignSystem.FontSizeMedium;
+            eyebrowTmp.text = "BRAIN BATTLE";
+            eyebrowTmp.fontSize = 50f;
             eyebrowTmp.fontStyle = FontStyles.Normal;
-            eyebrowTmp.alignment = TextAlignmentOptions.Center;
-            eyebrowTmp.color     = DesignSystem.TextSecondary;
-            Anchor(eyebrowTmp.gameObject, 0f, 0.64f, 1f, 0.86f);
+            eyebrowTmp.characterSpacing = 8f;
+            eyebrowTmp.color = new Color(1f, 0.18f, 0.47f, 0.65f);
+            eyebrowTmp.alignment = TextAlignmentOptions.Top;
+            eyebrowTmp.enableWordWrapping = false;
+            Stretch(eyebrowTmp.gameObject);
 
-            var headerTmp   = MakeTMP("Title", header.transform, "Level Select");
-            headerTmp.fontSize  = DesignSystem.FontSizeDisplay;
+            var headerTmp = MakeTMP("Title", header.transform, "Level Select");
+            headerTmp.text = "Level Select";
+            headerTmp.fontSize = 100f;
             headerTmp.fontStyle = FontStyles.Bold;
-            headerTmp.alignment = TextAlignmentOptions.Center;
-            headerTmp.color     = DesignSystem.TextPrimary;
-            Anchor(headerTmp.gameObject, 0f, 0.18f, 1f, 0.66f);
+            headerTmp.color = new Color(1f, 1f, 1f, 1f);
+            headerTmp.alignment = TextAlignmentOptions.Baseline;
+            headerTmp.enableWordWrapping = false;
+            Stretch(headerTmp.gameObject);
 
-            // ── Tab row: 3 flush equal-width tabs ─────────────────────────────────
+            // ── Tab row: segmented tabs below title ───────────────────────────────
+            const float tabContainerHeight = 88f;
+            var tabSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Project/Resources/Sprites/UIRoundedRect.png");
             var tabRow = UI("TabRow", layoutRoot);
             var tabRowRt = tabRow.GetComponent<RectTransform>();
             tabRowRt.anchorMin = new Vector2(0f, 1f);
             tabRowRt.anchorMax = new Vector2(1f, 1f);
             tabRowRt.pivot = new Vector2(0.5f, 1f);
-            tabRowRt.offsetMin = new Vector2(0f, -(DesignSystem.SpacingL + DesignSystem.LevelSelectTabHeight));
-            tabRowRt.offsetMax = new Vector2(0f, -DesignSystem.SpacingL);
+            tabRowRt.offsetMin = new Vector2(32f, -(DesignSystem.LevelSelectHeaderHeight + tabContainerHeight));
+            tabRowRt.offsetMax = new Vector2(-32f, -DesignSystem.LevelSelectHeaderHeight);
+
+            var tabContainerImage = tabRow.AddComponent<Image>();
+            tabContainerImage.sprite = tabSprite;
+            tabContainerImage.type = Image.Type.Sliced;
+            tabContainerImage.color = new Color(1f, 1f, 1f, 0.05f);
+
+            var tabLayout = tabRow.AddComponent<HorizontalLayoutGroup>();
+            tabLayout.childControlWidth = true;
+            tabLayout.childControlHeight = true;
+            tabLayout.childForceExpandWidth = true;
+            tabLayout.childForceExpandHeight = true;
+            tabLayout.padding = new RectOffset(4, 4, 4, 4);
+            tabLayout.spacing = 4f;
 
             string[] tabNames  = { "Beginner", "Expert", "Impossible" };
             var      tabButtons = new Button[3];
             for (int i = 0; i < 3; i++)
             {
-                float x0   = i * (1f / 3f);
-                float x1   = (i + 1) * (1f / 3f);
-                bool  active = i == 0;
+                bool active = i == 0;
 
-                var cell  = UI(tabNames[i] + "Tab", tabRow.transform);
-                Anchor(cell, x0, 0f, x1, 1f);
+                var cell = UI(tabNames[i] + "Tab", tabRow.transform);
+                var layoutElement = cell.AddComponent<LayoutElement>();
+                layoutElement.flexibleWidth = 1f;
 
-                var img   = cell.AddComponent<Image>();
-                img.color = active ? DesignSystem.Primary : DesignSystem.Surface;
+                var img = cell.AddComponent<Image>();
+                img.sprite = tabSprite;
+                img.type = Image.Type.Sliced;
+                img.color = active ? new Color(1f, 0.18f, 0.47f, 1f) : new Color(0f, 0f, 0f, 0f);
 
-                var btn   = cell.AddComponent<Button>();
+                var btn = cell.AddComponent<Button>();
                 ApplyBtnColors(btn);
 
-                var lbl       = MakeTMP("Label", cell.transform, tabNames[i]);
+                var lbl = MakeTMP("Label", cell.transform, tabNames[i]);
+                lbl.fontSize = 36f;
                 lbl.alignment = TextAlignmentOptions.Center;
-                lbl.fontSize  = DesignSystem.FontSizeMedium;
+                lbl.enableWordWrapping = false;
                 lbl.fontStyle = active ? FontStyles.Bold : FontStyles.Normal;
-                lbl.color     = active ? DesignSystem.TextPrimary : DesignSystem.TextSecondary;
+                lbl.color = active ? new Color(1f, 1f, 1f, 1f) : new Color(1f, 1f, 1f, 0.35f);
                 Stretch(lbl.gameObject);
 
                 tabButtons[i] = btn;
@@ -191,38 +225,66 @@ namespace BrainBattle.Editor
             r.TabButtons = tabButtons;
 
             // ── Progress row: active difficulty label + single progress bar ──────
-            var progRow = UI("ProgressRow", layoutRoot);
-            Anchor(progRow, 0f, 0.755f, 1f, 0.800f);
+            var progressSection = UI("ProgressSection", layoutRoot);
+            var progressSectionRt = progressSection.GetComponent<RectTransform>();
+            progressSectionRt.anchorMin = new Vector2(0f, 1f);
+            progressSectionRt.anchorMax = new Vector2(1f, 1f);
+            progressSectionRt.pivot = new Vector2(0.5f, 1f);
+            var progressTop = DesignSystem.LevelSelectHeaderHeight + tabContainerHeight + DesignSystem.SpacingM;
+            progressSectionRt.offsetMin = new Vector2(32f, -(progressTop + DesignSystem.LevelSelectProgressRowHeight));
+            progressSectionRt.offsetMax = new Vector2(-32f, -progressTop);
+
+            var progressSectionLayout = progressSection.AddComponent<VerticalLayoutGroup>();
+            progressSectionLayout.spacing = 6f;
+            progressSectionLayout.padding = new RectOffset(0, 0, 12, 8);
+            progressSectionLayout.childControlWidth = true;
+            progressSectionLayout.childControlHeight = true;
+            progressSectionLayout.childForceExpandWidth = true;
+            progressSectionLayout.childForceExpandHeight = false;
+
+            var progRow = UI("ProgressRow", progressSection.transform);
+            var progRowLayout = progRow.AddComponent<HorizontalLayoutGroup>();
+            progRowLayout.childControlWidth = true;
+            progRowLayout.childForceExpandWidth = true;
+            progRowLayout.spacing = 0f;
+            progRowLayout.padding = new RectOffset(0, 0, 0, 0);
+
+            var progRowElement = progRow.AddComponent<LayoutElement>();
+            progRowElement.preferredHeight = 32f;
 
             var label = MakeTMP("ProgressLabel", progRow.transform, "Beginner progress");
-            label.alignment = TextAlignmentOptions.MidlineLeft;
-            label.fontSize = DesignSystem.FontSizeMedium;
-            label.color = DesignSystem.TextSecondary;
-            Anchor(label.gameObject, 0.03f, 0f, 0.38f, 1f);
+            label.fontSize = 30f;
+            label.fontStyle = FontStyles.Normal;
+            label.color = new Color(1f, 1f, 1f, 0.35f);
+            label.alignment = TextAlignmentOptions.Left;
+            label.enableWordWrapping = false;
+            Stretch(label.gameObject);
 
-            var track = UI("Track", progRow.transform);
-            var trackRt = track.GetComponent<RectTransform>();
-            trackRt.anchorMin = new Vector2(0.38f, 0.5f);
-            trackRt.anchorMax = new Vector2(0.86f, 0.5f);
-            trackRt.pivot = new Vector2(0.5f, 0.5f);
-            trackRt.anchoredPosition = Vector2.zero;
-            trackRt.sizeDelta = new Vector2(0f, DesignSystem.ProgressBarHeight);
-            track.AddComponent<Image>().color = DesignSystem.Surface;
+            var pct = MakeTMP("ProgressPercent", progRow.transform, "0%");
+            pct.fontSize = 30f;
+            pct.fontStyle = FontStyles.Bold;
+            pct.color = new Color(1f, 0.18f, 0.47f, 1f);
+            pct.alignment = TextAlignmentOptions.Right;
+            pct.enableWordWrapping = false;
+            Stretch(pct.gameObject);
 
-            var fill = UI("Fill", track.transform);
-            Stretch(fill);
+            var track = UI("ProgressTrack", progressSection.transform);
+            var trackImage = track.AddComponent<Image>();
+            trackImage.color = new Color(1f, 1f, 1f, 0.07f);
+            trackImage.raycastTarget = false;
+            var trackElement = track.AddComponent<LayoutElement>();
+            trackElement.preferredHeight = 40f;
+
+            var fill = UI("ProgressFill", track.transform);
+            var fillRt = fill.GetComponent<RectTransform>();
+            fillRt.anchorMin = new Vector2(0f, 0f);
+            fillRt.anchorMax = new Vector2(0f, 1f);
+            fillRt.pivot = new Vector2(0f, 0.5f);
+            fillRt.anchoredPosition = Vector2.zero;
+            fillRt.sizeDelta = Vector2.zero;
             var fillImg = fill.AddComponent<Image>();
-            fillImg.color = DesignSystem.Primary;
-            fillImg.type = Image.Type.Filled;
-            fillImg.fillMethod = Image.FillMethod.Horizontal;
-            fillImg.fillAmount = 0f;
+            fillImg.color = new Color(1f, 0.18f, 0.47f, 1f);
             fillImg.raycastTarget = false;
-
-            var pct = MakeTMP("PctText", progRow.transform, "0%");
-            pct.alignment = TextAlignmentOptions.MidlineRight;
-            pct.fontSize = DesignSystem.FontSizeMedium;
-            pct.color = DesignSystem.TextPrimary;
-            Anchor(pct.gameObject, 0.87f, 0f, 0.97f, 1f);
 
             r.ProgressFill = fillImg;
             r.ProgressText = pct;
@@ -230,7 +292,12 @@ namespace BrainBattle.Editor
 
             // ── Scroll view ───────────────────────────────────────────────────────
             var scrollGO = UI("LevelScrollView", layoutRoot);
-            Anchor(scrollGO, 0.03f, 0.06f, 0.97f, 0.775f);
+            var scrollRt = scrollGO.GetComponent<RectTransform>();
+            scrollRt.anchorMin = new Vector2(0.03f, 0f);
+            scrollRt.anchorMax = new Vector2(0.97f, 1f);
+            scrollRt.pivot = new Vector2(0.5f, 0.5f);
+            scrollRt.offsetMin = new Vector2(0f, 95f + DesignSystem.SpacingL);
+            scrollRt.offsetMax = new Vector2(0f, -(progressTop + DesignSystem.LevelSelectProgressRowHeight + DesignSystem.SpacingL));
             scrollGO.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0f);
 
             var scroll               = scrollGO.AddComponent<ScrollRect>();

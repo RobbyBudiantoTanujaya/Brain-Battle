@@ -113,6 +113,9 @@
   - [x] LevelSelect Task 2 header section: added eyebrow "BRAIN BATTLE" (18), title "Level Select" (42 bold), and adjusted header↔tab vertical spacing in LevelSelectSceneBuilder
   - [x] LevelSelect Task 3 segmented tabs: tab row uses 72px tokenized height, 18px typography, clear active/inactive tokenized states, and SelectTab early-return to avoid redundant refresh flicker
   - [x] LevelSelect Task 4 progress row: single active-difficulty row with dynamic label, tokenized 6px bar, synced fill/% from stars data on tab switch
+  - [x] Orientation fix: lock app to portrait in PlayerSettings to keep LevelSelect scaling aligned with 1170×2532 design reference
+  - [x] Visual alignment fix: increased top typography scale and moved segmented difficulty tabs below title to match LevelSelect reference hierarchy
+  - [x] Final pixel-locked top layout patch: fixed header/tab/progress stack with dedicated tokens and rebalanced scroll viewport start to match mockup composition
 - [x] Level generator: 6 new levels per run, all grid sizes, no overwrites (System.IO discovery)
 - [x] LevelSelectController: data-driven _allLevels (removed hardcoded DiffPools); BuildDiffPools() at runtime
 - [x] LevelSelectSceneBuilder: wires _allLevels on LevelSelectController after generation
