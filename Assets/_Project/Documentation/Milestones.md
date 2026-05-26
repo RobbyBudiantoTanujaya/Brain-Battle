@@ -110,6 +110,9 @@
   - [x] LevelSelectButton prefab: label centred (full anchor), fontSize 67px bold
   - [x] LevelSelect scaled for 1170×2532 reference resolution (CanvasScaler + proportional UI sizing): header/title/tab/progress text, progress track 7px, grid 359×359 with 14px gap, padding 19px, PLAY height 76px, button label/checkmark 67px
   - [x] LevelSelect Task 1 baseline layout root: added SafeAreaRoot + SafeAreaFitter in builder so portrait layout stays inside device safe area (no notch/home indicator overlap)
+  - [x] LevelSelect Task 2 header section: added eyebrow "BRAIN BATTLE" (18), title "Level Select" (42 bold), and adjusted header↔tab vertical spacing in LevelSelectSceneBuilder
+  - [x] LevelSelect Task 3 segmented tabs: tab row uses 72px tokenized height, 18px typography, clear active/inactive tokenized states, and SelectTab early-return to avoid redundant refresh flicker
+  - [x] LevelSelect Task 4 progress row: single active-difficulty row with dynamic label, tokenized 6px bar, synced fill/% from stars data on tab switch
 - [x] Level generator: 6 new levels per run, all grid sizes, no overwrites (System.IO discovery)
 - [x] LevelSelectController: data-driven _allLevels (removed hardcoded DiffPools); BuildDiffPools() at runtime
 - [x] LevelSelectSceneBuilder: wires _allLevels on LevelSelectController after generation

@@ -136,17 +136,31 @@ namespace BrainBattle.Editor
 
             // ── Header ────────────────────────────────────────────────────────────
             var header = UI("Header", layoutRoot);
-            Anchor(header, 0f, 0.90f, 1f, 1.00f);
+            Anchor(header, 0f, 0.89f, 1f, 1.00f);
             header.AddComponent<Image>().color = ColPanel;
-            var headerTmp   = MakeTMP("Title", header.transform, "LEVEL SELECT");
-            headerTmp.fontSize  = 86f;
+
+            var eyebrowTmp = MakeTMP("Eyebrow", header.transform, "BRAIN BATTLE");
+            eyebrowTmp.fontSize  = DesignSystem.FontSizeMedium;
+            eyebrowTmp.fontStyle = FontStyles.Normal;
+            eyebrowTmp.alignment = TextAlignmentOptions.Center;
+            eyebrowTmp.color     = DesignSystem.TextSecondary;
+            Anchor(eyebrowTmp.gameObject, 0f, 0.64f, 1f, 0.86f);
+
+            var headerTmp   = MakeTMP("Title", header.transform, "Level Select");
+            headerTmp.fontSize  = DesignSystem.FontSizeDisplay;
             headerTmp.fontStyle = FontStyles.Bold;
             headerTmp.alignment = TextAlignmentOptions.Center;
-            Stretch(headerTmp.gameObject);
+            headerTmp.color     = DesignSystem.TextPrimary;
+            Anchor(headerTmp.gameObject, 0f, 0.18f, 1f, 0.66f);
 
             // ── Tab row: 3 flush equal-width tabs ─────────────────────────────────
             var tabRow = UI("TabRow", layoutRoot);
-            Anchor(tabRow, 0f, 0.82f, 1f, 0.90f); // 60px approx in 1920 ref
+            var tabRowRt = tabRow.GetComponent<RectTransform>();
+            tabRowRt.anchorMin = new Vector2(0f, 1f);
+            tabRowRt.anchorMax = new Vector2(1f, 1f);
+            tabRowRt.pivot = new Vector2(0.5f, 1f);
+            tabRowRt.offsetMin = new Vector2(0f, -(DesignSystem.SpacingL + DesignSystem.LevelSelectTabHeight));
+            tabRowRt.offsetMax = new Vector2(0f, -DesignSystem.SpacingL);
 
             string[] tabNames  = { "Beginner", "Expert", "Impossible" };
             var      tabButtons = new Button[3];
@@ -157,70 +171,62 @@ namespace BrainBattle.Editor
                 bool  active = i == 0;
 
                 var cell  = UI(tabNames[i] + "Tab", tabRow.transform);
-                Anchor(cell, x0, 0f, x1, 1f); // flush — no gap
+                Anchor(cell, x0, 0f, x1, 1f);
 
                 var img   = cell.AddComponent<Image>();
-                img.color = active ? ColAccent : ColTabInact;
+                img.color = active ? DesignSystem.Primary : DesignSystem.Surface;
 
                 var btn   = cell.AddComponent<Button>();
                 ApplyBtnColors(btn);
 
                 var lbl       = MakeTMP("Label", cell.transform, tabNames[i]);
                 lbl.alignment = TextAlignmentOptions.Center;
-                lbl.fontSize  = 45f;
-                lbl.fontStyle = active ? FontStyles.Bold   : FontStyles.Normal;
-                lbl.color     = active ? Color.white        : ColTxtGray;
+                lbl.fontSize  = DesignSystem.FontSizeMedium;
+                lbl.fontStyle = active ? FontStyles.Bold : FontStyles.Normal;
+                lbl.color     = active ? DesignSystem.TextPrimary : DesignSystem.TextSecondary;
                 Stretch(lbl.gameObject);
 
                 tabButtons[i] = btn;
             }
             r.TabButtons = tabButtons;
 
-            // ── Progress row: one group per tab ───────────────────────────────────
-            // Compact 48px strip — track is 6px, centred vertically.
+            // ── Progress row: active difficulty label + single progress bar ──────
             var progRow = UI("ProgressRow", layoutRoot);
-            Anchor(progRow, 0f, 0.775f, 1f, 0.820f);
+            Anchor(progRow, 0f, 0.755f, 1f, 0.800f);
 
-            var progFills = new Image[3];
-            var progTexts = new TextMeshProUGUI[3];
-            for (int i = 0; i < 3; i++)
-            {
-                float x0 = i * (1f / 3f), x1 = (i + 1) * (1f / 3f);
+            var label = MakeTMP("ProgressLabel", progRow.transform, "Beginner progress");
+            label.alignment = TextAlignmentOptions.MidlineLeft;
+            label.fontSize = DesignSystem.FontSizeMedium;
+            label.color = DesignSystem.TextSecondary;
+            Anchor(label.gameObject, 0.03f, 0f, 0.38f, 1f);
 
-                var group = UI($"ProgressGroup{i}", progRow.transform);
-                Anchor(group, x0 + 0.01f, 0f, x1 - 0.01f, 1f);
+            var track = UI("Track", progRow.transform);
+            var trackRt = track.GetComponent<RectTransform>();
+            trackRt.anchorMin = new Vector2(0.38f, 0.5f);
+            trackRt.anchorMax = new Vector2(0.86f, 0.5f);
+            trackRt.pivot = new Vector2(0.5f, 0.5f);
+            trackRt.anchoredPosition = Vector2.zero;
+            trackRt.sizeDelta = new Vector2(0f, DesignSystem.ProgressBarHeight);
+            track.AddComponent<Image>().color = DesignSystem.Surface;
 
-                // 6-px track — anchored to parent centre, width fills 80% of group.
-                var track   = UI("Track", group.transform);
-                var trackRt = track.GetComponent<RectTransform>();
-                trackRt.anchorMin       = new Vector2(0f,   0.5f);
-                trackRt.anchorMax       = new Vector2(0.80f, 0.5f);
-                trackRt.pivot           = new Vector2(0.5f,  0.5f);
-                trackRt.anchoredPosition = Vector2.zero;
-                trackRt.sizeDelta       = new Vector2(0f, 7f);
-                track.AddComponent<Image>().color = new Color(0.165f, 0.165f, 0.243f, 1f);
+            var fill = UI("Fill", track.transform);
+            Stretch(fill);
+            var fillImg = fill.AddComponent<Image>();
+            fillImg.color = DesignSystem.Primary;
+            fillImg.type = Image.Type.Filled;
+            fillImg.fillMethod = Image.FillMethod.Horizontal;
+            fillImg.fillAmount = 0f;
+            fillImg.raycastTarget = false;
 
-                // Fill (Image.Type.Filled, Horizontal)
-                var fill   = UI("Fill", track.transform);
-                Stretch(fill);
-                var fillImg          = fill.AddComponent<Image>();
-                fillImg.color        = ColAccent;
-                fillImg.type         = Image.Type.Filled;
-                fillImg.fillMethod   = Image.FillMethod.Horizontal;
-                fillImg.fillAmount   = 0f;
-                fillImg.raycastTarget = false;
-                progFills[i]         = fillImg;
+            var pct = MakeTMP("PctText", progRow.transform, "0%");
+            pct.alignment = TextAlignmentOptions.MidlineRight;
+            pct.fontSize = DesignSystem.FontSizeMedium;
+            pct.color = DesignSystem.TextPrimary;
+            Anchor(pct.gameObject, 0.87f, 0f, 0.97f, 1f);
 
-                // % text — right-aligned, takes the remaining 20% of the group.
-                var pct       = MakeTMP($"PctText{i}", group.transform, "0%");
-                pct.alignment = TextAlignmentOptions.MidlineRight;
-                pct.fontSize  = 33f;
-                pct.color     = Color.white;
-                Anchor(pct.gameObject, 0.82f, 0f, 1.00f, 1f);
-                progTexts[i]  = pct;
-            }
-            r.ProgressFills = progFills;
-            r.ProgressTexts = progTexts;
+            r.ProgressFill = fillImg;
+            r.ProgressText = pct;
+            r.ProgressLabel = label;
 
             // ── Scroll view ───────────────────────────────────────────────────────
             var scrollGO = UI("LevelScrollView", layoutRoot);
@@ -403,17 +409,9 @@ namespace BrainBattle.Editor
             for (int i = 0; i < 3; i++)
                 tabProp.GetArrayElementAtIndex(i).objectReferenceValue = r.TabButtons[i];
 
-            // Progress fills array
-            var fillProp = so.FindProperty("_progressFills");
-            fillProp.arraySize = 3;
-            for (int i = 0; i < 3; i++)
-                fillProp.GetArrayElementAtIndex(i).objectReferenceValue = r.ProgressFills[i];
-
-            // Progress texts array
-            var textProp = so.FindProperty("_progressTexts");
-            textProp.arraySize = 3;
-            for (int i = 0; i < 3; i++)
-                textProp.GetArrayElementAtIndex(i).objectReferenceValue = r.ProgressTexts[i];
+            so.FindProperty("_progressFill").objectReferenceValue  = r.ProgressFill;
+            so.FindProperty("_progressText").objectReferenceValue  = r.ProgressText;
+            so.FindProperty("_progressLabel").objectReferenceValue = r.ProgressLabel;
 
             // Grid content + prefab
             so.FindProperty("_gridContent").objectReferenceValue        = r.GridContent;
@@ -535,8 +533,9 @@ namespace BrainBattle.Editor
             public GameObject          Control;
             public GameObject          Prefab;
             public Button[]            TabButtons;
-            public Image[]             ProgressFills;
-            public TextMeshProUGUI[]   ProgressTexts;
+            public Image               ProgressFill;
+            public TextMeshProUGUI     ProgressText;
+            public TextMeshProUGUI     ProgressLabel;
             public Transform           GridContent;
             public Button              PlayButton;
         }

@@ -29,9 +29,12 @@ namespace BrainBattle.Shared.UI
         [SerializeField] private LevelData[] _allLevels;
 
         [Header("Tabs (length 3)")]
-        [SerializeField] private Button[]          _tabButtons;
-        [SerializeField] private Image[]           _progressFills;
-        [SerializeField] private TextMeshProUGUI[] _progressTexts;
+        [SerializeField] private Button[] _tabButtons;
+
+        [Header("Progress")]
+        [SerializeField] private Image _progressFill;
+        [SerializeField] private TextMeshProUGUI _progressText;
+        [SerializeField] private TextMeshProUGUI _progressLabel;
 
         [Header("Level Grid")]
         [SerializeField] private Transform  _gridContent;
@@ -42,7 +45,7 @@ namespace BrainBattle.Shared.UI
 
         // ── State ─────────────────────────────────────────────────────────────────
 
-        private int _activeTab;
+        private int _activeTab = -1;
         private int[][] _diffPools;
         private readonly List<LevelSelectButton> _buttons = new();
 
@@ -130,6 +133,9 @@ namespace BrainBattle.Shared.UI
 
         private void SelectTab(int index)
         {
+            if (index == _activeTab)
+                return;
+
             _activeTab = index;
 
             for (int i = 0; i < _tabButtons.Length; i++)
@@ -155,24 +161,26 @@ namespace BrainBattle.Shared.UI
 
         private void RefreshProgress()
         {
-            if (_diffPools == null) return;
-            for (int d = 0; d < _diffPools.Length; d++)
+            if (_diffPools == null || _activeTab < 0 || _activeTab >= _diffPools.Length) return;
+
+            int[] pool = _diffPools[_activeTab];
+            int done = 0;
+            foreach (int lvl in pool)
+                if (Stars(lvl) > 0) done++;
+
+            float pct = pool.Length > 0 ? (float)done / pool.Length : 0f;
+
+            if (_progressFill != null)
             {
-                int[] pool = _diffPools[d];
-                int   done = 0;
-                foreach (int lvl in pool)
-                    if (Stars(lvl) > 0) done++;
-
-                float pct = pool.Length > 0 ? (float)done / pool.Length : 0f;
-
-                if (_progressFills != null && d < _progressFills.Length && _progressFills[d] != null)
-                {
-                    _progressFills[d].fillAmount = pct;
-                    _progressFills[d].color      = ColProgressFill;
-                }
-                if (_progressTexts != null && d < _progressTexts.Length && _progressTexts[d] != null)
-                    _progressTexts[d].text = $"{Mathf.RoundToInt(pct * 100)}%";
+                _progressFill.fillAmount = pct;
+                _progressFill.color = ColProgressFill;
             }
+
+            if (_progressText != null)
+                _progressText.text = $"{Mathf.RoundToInt(pct * 100)}%";
+
+            if (_progressLabel != null)
+                _progressLabel.text = $"{DifficultyNames[_activeTab]} progress";
         }
 
         // ── Level grid ────────────────────────────────────────────────────────────
