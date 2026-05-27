@@ -1,43 +1,34 @@
 using System;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
-using BrainBattle.Shared.UI;
 
 namespace BrainBattle.Shared.UI
 {
     public enum LevelState { Locked, Available, Completed }
 
-    /// <summary>
-    /// Single cell in the Level Select grid.
-    /// Call Setup() after instantiation to configure number + state.
-    /// Fires OnLevelSelected when tapped (Locked state is silently ignored).
-    /// </summary>
     public sealed class LevelSelectButton : MonoBehaviour
     {
-        // Fallback solid colours used when sprites are unavailable.
-        private static readonly Color ColAccent = DesignSystem.Primary;
-        private static readonly Color ColLocked = DesignSystem.Background;
+        [SerializeField] private Image _rootImage;
+        [SerializeField] private Image _bgImage;
+        [SerializeField] private TextMeshProUGUI _primaryText;
+        [SerializeField] private TextMeshProUGUI _secondaryText;
+        [SerializeField] private LayoutElement _primaryLayout;
+        [SerializeField] private LayoutElement _secondaryLayout;
+        [SerializeField] private TMP_FontAsset _bodyFont;
 
-        [SerializeField] private Image           _background;   // root Image — always transparent (raycast target)
-        [SerializeField] private Image           _spriteImage;  // child Image — fills button, shows state sprite
-        [SerializeField] private TextMeshProUGUI _levelLabel;   // bottom-centre number; hidden when Locked
-        [SerializeField] private GameObject      _checkmark;    // active when Completed
-        [SerializeField] private GameObject      _lockOverlay;  // legacy — kept for prefab compat, always hidden
-
-        [Header("Sprites (auto-loaded from Resources if not assigned)")]
-        [SerializeField] private Sprite _spriteAvailable;
-        [SerializeField] private Sprite _spriteCompleted;
-        [SerializeField] private Sprite _spriteActive;   // reserved for current/highlighted level
-        [SerializeField] private Sprite _spriteLocked;
-
-        public int        LevelNumber  { get; private set; }
-        public int        DisplayNumber { get; private set; }
-        public LevelState State        { get; private set; }
+        public int LevelNumber { get; private set; }
+        public int DisplayNumber { get; private set; }
+        public LevelState State { get; private set; }
 
         public event Action<int> OnLevelSelected;
 
         private Button _button;
+
+        private static readonly Color ColCompletedBorder = new Color(DesignSystem.Primary.r, DesignSystem.Primary.g, DesignSystem.Primary.b, 0.40f);
+        private static readonly Color ColCompletedFill = new Color(DesignSystem.Primary.r, DesignSystem.Primary.g, DesignSystem.Primary.b, 0.16f);
+        private static readonly Color ColLockedBorder = new Color(1f, 1f, 1f, 0.14f);
+        private static readonly Color ColLockedFill = new Color(1f, 1f, 1f, 0.05f);
 
         private void Awake()
         {
@@ -45,23 +36,15 @@ namespace BrainBattle.Shared.UI
             if (_button != null)
                 _button.onClick.AddListener(HandleClick);
 
-            // Load sprites from Resources if not pre-assigned via Inspector / SceneBuilder.
-            if (_spriteAvailable == null) _spriteAvailable = Resources.Load<Sprite>("Sprites/level_available");
-            if (_spriteCompleted == null) _spriteCompleted = Resources.Load<Sprite>("Sprites/level_completed");
-            if (_spriteActive    == null) _spriteActive    = Resources.Load<Sprite>("Sprites/level_active");
-            if (_spriteLocked    == null) _spriteLocked    = Resources.Load<Sprite>("Sprites/level_lock");
+            if (_bodyFont == null)
+                _bodyFont = Resources.Load<TMP_FontAsset>("Fonts/Outfit SDF");
         }
 
-        /// <summary>
-        /// Configure the button.
-        /// <paramref name="levelNumber"/> is the global level number used for PlayerPrefs and navigation.
-        /// <paramref name="displayNumber"/> is the 1-based index shown in the UI label (e.g. 1-12 per tab).
-        /// </summary>
         public void Setup(int levelNumber, int displayNumber, LevelState state)
         {
-            LevelNumber   = levelNumber;
+            LevelNumber = levelNumber;
             DisplayNumber = displayNumber;
-            State         = state;
+            State = state;
             Refresh();
         }
 
@@ -73,37 +56,123 @@ namespace BrainBattle.Shared.UI
 
         private void Refresh()
         {
-            bool locked    = State == LevelState.Locked;
-            bool completed = State == LevelState.Completed;
-
-            // Root Image is always transparent — it only exists as a Button raycast target.
-            if (_background != null)
+            switch (State)
             {
-                _background.sprite = null;
-                _background.color  = Color.clear;
+                case LevelState.Completed:
+                    ApplyCompleted();
+                    break;
+                case LevelState.Available:
+                    ApplyAvailable();
+                    break;
+                default:
+                    ApplyLocked();
+                    break;
             }
 
-            // Sprite Image fills the entire button and shows the correct state art.
-            if (_spriteImage != null)
+            if (_button != null)
+                _button.interactable = State != LevelState.Locked;
+        }
+
+        private void ApplyCompleted()
+        {
+            if (_rootImage != null)
+                _rootImage.color = ColCompletedBorder;
+
+            if (_bgImage != null)
+                _bgImage.color = ColCompletedFill;
+
+            if (_primaryText != null)
             {
-                Sprite sprite = locked    ? _spriteLocked    :
-                                completed ? _spriteCompleted :
-                                            _spriteAvailable;
-                _spriteImage.sprite          = sprite;
-                _spriteImage.color           = Color.white;
-                _spriteImage.preserveAspect  = false;
+                _primaryText.text = DisplayNumber.ToString();
+                _primaryText.fontSize = 68f;
+                _primaryText.fontStyle = FontStyles.Bold;
+                _primaryText.color = Color.white;
+                if (_bodyFont != null) _primaryText.font = _bodyFont;
             }
 
-            // Level number: white text, visible only for Available + Completed.
-            if (_levelLabel != null)
+            if (_primaryLayout != null)
+                _primaryLayout.preferredHeight = 80f;
+
+            if (_secondaryText != null)
             {
-                _levelLabel.text = DisplayNumber.ToString();
-                _levelLabel.gameObject.SetActive(!locked);
+                _secondaryText.gameObject.SetActive(true);
+                _secondaryText.text = "Completed";
+                _secondaryText.fontSize = 22f;
+                _secondaryText.fontStyle = FontStyles.Normal;
+                _secondaryText.color = new Color(1f, 1f, 1f, 0.60f);
+                if (_bodyFont != null) _secondaryText.font = _bodyFont;
             }
 
-            if (_checkmark   != null) _checkmark.SetActive(completed);
-            if (_lockOverlay != null) _lockOverlay.SetActive(false); // sprite handles locked state
-            if (_button      != null) _button.interactable = !locked;
+            if (_secondaryLayout != null)
+                _secondaryLayout.preferredHeight = 30f;
+        }
+
+        private void ApplyAvailable()
+        {
+            if (_rootImage != null)
+                _rootImage.color = new Color(0f, 0f, 0f, 0f);
+
+            if (_bgImage != null)
+                _bgImage.color = new Color(1f, 0.18f, 0.47f, 1f);
+
+            if (_primaryText != null)
+            {
+                _primaryText.text = DisplayNumber.ToString();
+                _primaryText.fontSize = 68f;
+                _primaryText.fontStyle = FontStyles.Bold;
+                _primaryText.color = Color.white;
+                if (_bodyFont != null) _primaryText.font = _bodyFont;
+            }
+
+            if (_primaryLayout != null)
+                _primaryLayout.preferredHeight = 80f;
+
+            if (_secondaryText != null)
+            {
+                _secondaryText.gameObject.SetActive(true);
+                _secondaryText.text = "Play";
+                _secondaryText.fontSize = 25f;
+                _secondaryText.fontStyle = FontStyles.Normal;
+                _secondaryText.color = new Color(1f, 1f, 1f, 0.72f);
+                if (_bodyFont != null) _secondaryText.font = _bodyFont;
+            }
+
+            if (_secondaryLayout != null)
+                _secondaryLayout.preferredHeight = 30f;
+        }
+
+        private void ApplyLocked()
+        {
+            if (_rootImage != null)
+                _rootImage.color = ColLockedBorder;
+
+            if (_bgImage != null)
+                _bgImage.color = ColLockedFill;
+
+            if (_primaryText != null)
+            {
+                _primaryText.text = DisplayNumber.ToString();
+                _primaryText.fontSize = 48f;
+                _primaryText.fontStyle = FontStyles.Normal;
+                _primaryText.color = new Color(1f, 1f, 1f, 0.20f);
+                if (_bodyFont != null) _primaryText.font = _bodyFont;
+            }
+
+            if (_primaryLayout != null)
+                _primaryLayout.preferredHeight = 56f;
+
+            if (_secondaryText != null)
+            {
+                _secondaryText.gameObject.SetActive(true);
+                _secondaryText.text = "Locked";
+                _secondaryText.fontSize = 20f;
+                _secondaryText.fontStyle = FontStyles.Normal;
+                _secondaryText.color = new Color(1f, 1f, 1f, 0.15f);
+                if (_bodyFont != null) _secondaryText.font = _bodyFont;
+            }
+
+            if (_secondaryLayout != null)
+                _secondaryLayout.preferredHeight = 30f;
         }
     }
 }

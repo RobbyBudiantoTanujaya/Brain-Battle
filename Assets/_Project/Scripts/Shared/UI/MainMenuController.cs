@@ -6,7 +6,6 @@ namespace BrainBattle.Shared.UI
     /// <summary>
     /// Drives the Main Menu screen.
     /// Attach to a root GameObject that has (or contains) a background Image.
-    /// The background sprite is loaded at runtime from Resources/Sprites/main_menu_bg.
     /// </summary>
     public sealed class MainMenuController : MonoBehaviour
     {
@@ -20,17 +19,8 @@ namespace BrainBattle.Shared.UI
 
             if (_backgroundImage != null)
             {
-                var sprite = Resources.Load<Sprite>("Sprites/main_menu_bg");
-                if (sprite != null)
-                {
-                    _backgroundImage.sprite = sprite;
-                    _backgroundImage.color  = Color.white;
-                }
-                else
-                {
-                    Debug.LogWarning("[MainMenuController] 'Sprites/main_menu_bg' not found in Resources. " +
-                                     "Ensure the file exists at Assets/_Project/Resources/Sprites/main_menu_bg.png.");
-                }
+                _backgroundImage.sprite = null;
+                _backgroundImage.color  = DesignSystem.Background;
             }
             else
             {

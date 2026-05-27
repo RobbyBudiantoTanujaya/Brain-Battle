@@ -23,7 +23,7 @@ Assets/_Project/
 │   ├── audio/BGM/          # bgm.mp3 — main background music
 │   ├── audio/SFX/          # tap_dot, auto_dot, button_tap, invalid_place, victory_sound
 │   ├── Fonts/              # Outfit SDF (body), HUDIcons SDF (star glyphs)
-│   └── Sprites/            # dot, crown, UIRoundedRect, main_menu_bg
+│   └── Sprites/            # dot, crown, UIRoundedRect, level state sprites
 ├── Scenes/
 │   ├── LevelSelect.unity   # Scene index 0 — built by LevelSelectSceneBuilder
 │   └── SampleScene.unity   # Scene index 1 — built by KingsSceneBuilder (inside Assets/Scenes too)

@@ -423,7 +423,6 @@ void RebuildGrid();
 |------|-------|
 | `dot.png` | Cell dot marker |
 | `crown.png` | Multi-sprite — use `crown_1` (347×224) |
-| `main_menu_bg.png` | Scene backgrounds |
 | `victory_screen_bg.png` | Victory panel background |
 | `UIRoundedRect.png` | 9-sliced button/panel bg |
 | `level_available.png` | Level button states |

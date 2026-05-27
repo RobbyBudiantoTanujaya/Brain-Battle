@@ -20,7 +20,6 @@ Dokumen ini menjelaskan cara **membangun `LevelSelect` secara manual dari Unity 
 Pastikan asset berikut ada:
 
 - Sprites
-  - `Assets/_Project/Resources/Sprites/main_menu_bg.png`
   - `Assets/_Project/Resources/Sprites/level_available.png`
   - `Assets/_Project/Resources/Sprites/level_completed.png`
   - `Assets/_Project/Resources/Sprites/level_active.png`
@@ -112,9 +111,8 @@ Urutan child di bawah `Canvas`:
 - Buat `UI/Image` bernama `Background`
 - Stretch full canvas (`anchor min 0,0` / `anchor max 1,1`, offsets 0)
 - `Image`:
-  - Color: putih
-  - Sprite: `main_menu_bg.png`
-  - Jika sprite tidak ada, fallback color `(0.06, 0.06, 0.10, 1)`
+  - Color: `(0.06, 0.06, 0.10, 1)`
+  - Tanpa sprite background
 
 ### 7.2 `Header`
 
@@ -258,7 +256,7 @@ Tidak perlu wiring `OnClick` manual di Inspector untuk tab/play di scene ini.
 ## 10) Sprite assignment detail
 
 ### `Background`
-- Sprite `main_menu_bg.png` pada `Canvas/Background`
+- Tanpa sprite pada `Canvas/Background`
 
 ### `LevelSelectButton` prefab
 Pada `Assets/_Project/Prefabs/LevelSelectButton.prefab`, field sprite wajib:

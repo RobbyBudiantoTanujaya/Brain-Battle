@@ -19,7 +19,7 @@ Canvas reference resolution: **1170 × 2532** (iPhone 13 Pro Max), matchWidthOrH
 
 ```
 [Canvas]                        Canvas, CanvasScaler, GraphicRaycaster
-  Background                    Image (main_menu_bg.png), sibling 0
+  Background                    Image (solid DesignSystem.Background), sibling 0
   GridContainer                 KingsGridRenderer, RectTransform
                                   anchor (0,0)–(1,1), offsetMin.y = 120 (above HUD)
   TimerBar                      Image (NavyBg), anchor top, height = TimerBarHeight (48px)
@@ -72,7 +72,7 @@ Build order: LevelSelect = index 0, SampleScene = index 1.
 
 ```
 [Canvas]                        Canvas, CanvasScaler, GraphicRaycaster
-  Background                    Image (main_menu_bg.png)
+  Background                    Image (solid DesignSystem.Background)
   Header                        Image → Title (TMP "LEVEL SELECT")
   TabRow
     BeginnerTab                 Image, Button → Label (TMP)
@@ -283,7 +283,6 @@ Read tokens in code (e.g., `BuildCells()`, `Start()`), not in `[SerializeField]`
 |-------------------------|-----------------------------------------------------------------|
 | `dot.png`               | Single sprite                                                   |
 | `crown.png`             | Multi-sprite sheet. Use `crown_1` (347×224 actual crown). `crown_0` is a small circle. Use `LoadAllAssetsAtPath` to find by name. |
-| `main_menu_bg.png`      | Multi-sprite — use `LoadAllAssetsAtPath`, take first Sprite sub-asset |
 | `victory_screen_bg.png` | Single sprite (fullscreen victory background)                   |
 | `UIRoundedRect.png`     | 9-sliced 128×128, radius=10px, pixelsPerUnit=1. Used on all Button/panel Images with `Image.Type.Sliced` |
 | `level_available.png`   | LevelSelectButton — Available state                             |

@@ -46,7 +46,7 @@
   - [x] LevelSelectButton: 4 state sprites (available/completed/active/locked) via Resources.Load; sprite-based Refresh() with color fallback
   - [x] KingsSceneBuilder: updated AssignGridRendererSprites to new paths; added AssignLevelSelectButtonSprites for prefab pre-assign
   - [x] VictoryPanel: victory_screen_bg applied to panel Image in Awake
-  - [x] MainMenuController.cs created (Shared/UI) — loads main_menu_bg sprite
+  - [x] MainMenuController.cs created (Shared/UI) — drives solid background image styling
   - [x] Old placeholder sprites deleted (DotSprite.png, CrownSprite.png)
   - [x] SampleScene KingsGridRenderer re-wired to new dot/crown sprites
   - [x] LevelSelectButton prefab pre-assigned with all 4 level-state sprites
@@ -87,7 +87,7 @@
     - [x] Locked state uses lock sprite (not X overlay); LockOverlay always hidden; label hidden for Locked
     - [x] Button minimum size 160×160px; GridLayoutGroup cellSize=160×160, spacing=8×8, padding=16 all sides
     - [x] LevelSelectController: tab active=#ff2d78, inactive=#2a2a3e; progress fill=#ff2d78
-    - [x] Canvas background: main_menu_bg.png (Color.white)
+    - [x] Canvas background: solid DesignSystem.Background
     - [x] ScrollView Image: transparent; Viewport Image: Color.white (fixes Mask stencil clipping)
     - [x] LevelSelectSceneBuilder updated: prefab builder rewritten with SpriteImage child, grid 160×160/8px/16px
     - [x] LevelSelectButton prefab: SpriteImage child at index 0, root Color.clear, all 4 sprites pre-assigned
@@ -96,8 +96,8 @@
 - [x] Fix SampleScene game screen visuals
   - [x] Crown sprite: crown.png is multi-sprite sheet; load crown_1 (347×224 px actual crown) via LoadAll instead of crown_0 (35×33 px circle)
   - [x] KingsGridRenderer._crownSprite pre-assigned to crown_1 in Inspector (skips Awake Resources.Load)
-  - [x] SampleScene Canvas: Background Image added at sibling index 0, stretches full canvas, uses main_menu_bg sprite
-  - [x] KingsSceneBuilder updated: CreateBackground() adds main_menu_bg Image behind all children; AssignGridRendererSprites() now uses LoadAllAssetsAtPath to find crown_1
+  - [x] SampleScene Canvas: Background Image added at sibling index 0, stretches full canvas, uses solid DesignSystem.Background
+  - [x] KingsSceneBuilder updated: CreateBackground() adds a solid background Image behind all children; AssignGridRendererSprites() now uses LoadAllAssetsAtPath to find crown_1
 - [x] Fix: KingsSceneBootstrap redirects to LevelSelect when Kings_PendingLevel key absent (prevents SampleScene from auto-starting game when launched directly from Editor or cold boot)
 - [x] In-game Menu button — HUD tombol "Menu" kembali ke Level Select (MenuButton.cs, pinned kanan di -180px, sebelah Tips)
 - [x] Fix: Crown icon too small vs dot — added CrownIconScale=0.82 (vs DotIconScale=0.55); crown_1 sprite is 347×224 (landscape), so larger RectTransform needed so displayed height matches dot; ApplyCellState adjusts icon sizeDelta per state
@@ -106,7 +106,7 @@
   - [x] LevelSelectController: tab active=#ff2d78 bold white, inactive=#2a2a3e gray #888888 text (color + fontStyle set dynamically)
   - [x] VictoryPanel: star labels changed to ★ U+2605 unicode
   - [x] KingsSceneBuilder: TimerBar 48px NavyBg, HUD 72px NavyBg, VictoryPanel dark overlay + 85% wide + pink buttons + ★★★ in pink, StylePinkButton helper
-  - [x] LevelSelectSceneBuilder: flush tabs (no gap), 7px progress track, main_menu_bg background, grid 359×359/14px, PLAY button full-width pink 76px
+  - [x] LevelSelectSceneBuilder: flush tabs (no gap), 7px progress track, solid background, grid 359×359/14px, PLAY button full-width pink 76px
   - [x] LevelSelectButton prefab: label centred (full anchor), fontSize 67px bold
   - [x] LevelSelect scaled for 1170×2532 reference resolution (CanvasScaler + proportional UI sizing): header/title/tab/progress text, progress track 7px, grid 359×359 with 14px gap, padding 19px, PLAY height 76px, button label/checkmark 67px
   - [x] LevelSelect Task 1 baseline layout root: added SafeAreaRoot + SafeAreaFitter in builder so portrait layout stays inside device safe area (no notch/home indicator overlap)
@@ -116,6 +116,7 @@
   - [x] Orientation fix: lock app to portrait in PlayerSettings to keep LevelSelect scaling aligned with 1170×2532 design reference
   - [x] Visual alignment fix: increased top typography scale and moved segmented difficulty tabs below title to match LevelSelect reference hierarchy
   - [x] Final pixel-locked top layout patch: fixed header/tab/progress stack with dedicated tokens and rebalanced scroll viewport start to match mockup composition
+  - [x] Level cell state polish pass: locked/completed now use distinct border + fill contrast to better match mockup readability
 - [x] Level generator: 6 new levels per run, all grid sizes, no overwrites (System.IO discovery)
 - [x] LevelSelectController: data-driven _allLevels (removed hardcoded DiffPools); BuildDiffPools() at runtime
 - [x] LevelSelectSceneBuilder: wires _allLevels on LevelSelectController after generation

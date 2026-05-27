@@ -67,7 +67,6 @@ AudioManager uses `PlayOneShot()` — simultaneous SFX do not cut each other off
 | `dot.png` | Cell icon for `Dot` state (loaded by `KingsGridRenderer`) |
 | `crown.png` | Multi-sprite sheet: `crown_1` used as crown icon |
 | `UIRoundedRect.png` | 9-slice sprite for HUD button backgrounds |
-| `main_menu_bg.png` | Background image for LevelSelect and SampleScene |
 
 ### Sprite Loading in KingsGridRenderer
 

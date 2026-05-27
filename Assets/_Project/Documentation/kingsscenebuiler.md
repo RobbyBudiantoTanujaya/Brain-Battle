@@ -17,7 +17,6 @@ Dokumen ini menjelaskan cara **membangun `SampleScene` secara manual dari Unity 
 Pastikan asset berikut ada:
 
 - Sprites
-  - `Assets/_Project/Resources/Sprites/main_menu_bg.png`
   - `Assets/_Project/Resources/Sprites/victory_screen_bg.png`
   - `Assets/_Project/Resources/Sprites/dot.png`
   - `Assets/_Project/Resources/Sprites/crown.png` (pakai sub-sprite `crown_1`)
@@ -109,8 +108,8 @@ Urutan child di bawah `Canvas`:
 - `Image`:
   - Type: `Simple`
   - Preserve Aspect: `false`
-  - Color: putih
-  - Sprite: sub-sprite pertama dari `main_menu_bg.png`
+  - Color: `DesignSystem.Background`
+  - Tanpa sprite background
 
 ### 7.2 `GridContainer`
 

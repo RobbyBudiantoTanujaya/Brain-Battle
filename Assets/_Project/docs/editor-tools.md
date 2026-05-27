@@ -24,7 +24,7 @@ SampleScene
 ├── Global Light 2D
 ├── EventSystem      (InputSystemUIInputModule)
 ├── Canvas (1170×2532 reference, ScaleWithScreenSize, match=0.5)
-│   ├── Background   (Image, main_menu_bg.png sprite)
+│   ├── Background   (Image, solid DesignSystem.Background)
 │   ├── GridContainer (KingsGridRenderer, anchored center)
 │   ├── TimerBar     (Image + TimerText TMP)
 │   ├── TutorialOverlay (TutorialController, 5-step overlay)
@@ -85,7 +85,7 @@ LevelSelect
 ├── Main Camera      (Camera + AudioListener, orthographic)
 ├── EventSystem
 ├── Canvas (1170×2532 reference, match=0.5)
-│   ├── Background   (main_menu_bg.png)
+│   ├── Background   (solid DesignSystem.Background)
 │   ├── Header       (panel + "LEVEL SELECT" title)
 │   ├── TabRow       (3 tab buttons: Beginner / Expert / Impossible)
 │   ├── ProgressRow  (3 progress bars + "X/Y" texts)

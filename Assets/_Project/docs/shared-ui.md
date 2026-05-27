@@ -179,4 +179,4 @@ public void Init(LevelData data, int stars, bool isLocked, Action<int> onSelect)
 
 ## MainMenuController.cs
 
-Loads and displays `main_menu_bg.png` as the background sprite on any menu scene.
+Sets a solid `DesignSystem.Background` color on any menu scene background image.
