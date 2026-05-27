@@ -5,6 +5,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngine.Rendering;
 using TMPro;
 using BrainBattle.Kings;
 using BrainBattle.Shared.UI;
@@ -19,6 +20,7 @@ namespace BrainBattle.Editor
     {
         private const string ScenePath  = "Assets/_Project/Scenes/LevelSelect.unity";
         private const string PrefabPath = "Assets/_Project/Prefabs/LevelSelectButton.prefab";
+        private const string RoundedCornerMaterialPath = "Assets/_Project/Resources/UI/RoundedCornerMaterial.mat";
 
         private static readonly Color ColBg         = DesignSystem.HUDBarGradientBottom;
         private static readonly Color ColPanel      = new Color(0.102f, 0.102f, 0.180f, 0.97f); // #1a1a2e
@@ -169,7 +171,6 @@ namespace BrainBattle.Editor
 
             // ── Tab row: segmented tabs below title ───────────────────────────────
             const float tabContainerHeight = 88f;
-            var tabSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Project/Resources/Sprites/UIRoundedRect.png");
             var tabRow = UI("TabRow", layoutRoot);
             var tabRowRt = tabRow.GetComponent<RectTransform>();
             tabRowRt.anchorMin = new Vector2(0f, 1f);

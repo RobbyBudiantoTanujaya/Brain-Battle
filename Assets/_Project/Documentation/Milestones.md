@@ -96,7 +96,7 @@
 - [x] Fix SampleScene game screen visuals
   - [x] Crown sprite: crown.png is multi-sprite sheet; load crown_1 (347×224 px actual crown) via LoadAll instead of crown_0 (35×33 px circle)
   - [x] KingsGridRenderer._crownSprite pre-assigned to crown_1 in Inspector (skips Awake Resources.Load)
-  - [x] SampleScene Canvas: Background Image added at sibling index 0, stretches full canvas, uses solid DesignSystem.Background
+  - [x] SampleScene Canvas: Background Image added at sibling index 0, stretches full canvas, uses LevelSelect-matching background token (DesignSystem.HUDBarGradientBottom)
   - [x] KingsSceneBuilder updated: CreateBackground() adds a solid background Image behind all children; AssignGridRendererSprites() now uses LoadAllAssetsAtPath to find crown_1
 - [x] Fix: KingsSceneBootstrap redirects to LevelSelect when Kings_PendingLevel key absent (prevents SampleScene from auto-starting game when launched directly from Editor or cold boot)
 - [x] In-game Menu button — HUD tombol "Menu" kembali ke Level Select (MenuButton.cs, pinned kanan di -180px, sebelah Tips)

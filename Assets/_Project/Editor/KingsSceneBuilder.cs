@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngine.Rendering;
 using TMPro;
 using BrainBattle.Games.Kings.Logic;
 using BrainBattle.Games.Kings.UI;
@@ -103,9 +104,9 @@ namespace BrainBattle.Editor
 
             // Reset cached references — font creation functions reuse valid existing assets
             // or recreate only if the atlas texture is broken/missing.
-            _hudIconFont       = null;
-            _bodyFont          = null;
-            _roundedRectSprite = null;
+            _hudIconFont          = null;
+            _bodyFont             = null;
+            _roundedCornerMaterial = null;
         }
 
         // ── Top-level creators ─────────────────────────────────────────────────────
@@ -183,7 +184,7 @@ namespace BrainBattle.Editor
             bgGO.transform.SetSiblingIndex(0);
 
             var img = bgGO.AddComponent<Image>();
-            img.color          = NavyBg;
+            img.color          = DesignSystem.HUDBarGradientBottom;
             img.type           = Image.Type.Simple;
             img.preserveAspect = false;
         }
@@ -460,9 +461,7 @@ namespace BrainBattle.Editor
         {
             var go  = MakeUIGO(name, parent);
             var img = go.AddComponent<Image>();
-            img.sprite = GetOrCreateRoundedRectSprite();
-            img.type   = Image.Type.Sliced;
-            img.color  = bgColor;
+            ApplyRoundedCornerImage(img, bgColor, 40f);
 
             var btn                  = go.AddComponent<Button>();
             var colors               = btn.colors;
@@ -496,9 +495,7 @@ namespace BrainBattle.Editor
         {
             var go  = MakeUIGO(name, parent);
             var img = go.AddComponent<Image>();
-            img.sprite = GetOrCreateRoundedRectSprite();
-            img.type   = Image.Type.Sliced;
-            img.color  = new Color(1f, 0.11f, 0.47f, 0.15f);
+            ApplyRoundedCornerImage(img, new Color(1f, 0.11f, 0.47f, 0.15f), 40f);
 
             var le            = go.AddComponent<LayoutElement>();
             le.flexibleWidth  = 1.5f;
@@ -616,9 +613,7 @@ namespace BrainBattle.Editor
         {
             var go  = MakeUIGO(name, parent);
             var img = go.AddComponent<Image>();
-            img.sprite = GetOrCreateRoundedRectSprite();
-            img.type   = Image.Type.Sliced;
-            img.color  = BtnBg;
+            ApplyRoundedCornerImage(img, BtnBg, 40f);
             var btn = go.AddComponent<Button>();
 
             // Tint the button states so pressed/highlighted are visible.
@@ -891,77 +886,41 @@ namespace BrainBattle.Editor
             return AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(assetPath);
         }
 
-        // Shared palette — sourced from DesignSystem; BtnBg has no matching token.
-        // ── Rounded-rect UI sprite ────────────────────────────────────────────────
-        // White 128×128 texture with 28 px corner radius, saved once as a PNG.
-        // Applied to every button/panel Image with Type.Sliced so corners stay
-        // sharp at any RectTransform size.  pixelsPerUnit = 1 so the border value
-        // (28) maps directly to 28 canvas pixels — nice ~14 % radius on a 200 px button.
+        static Material _roundedCornerMaterial;
 
-        static Sprite _roundedRectSprite;
-
-        static Sprite GetOrCreateRoundedRectSprite()
+        static void ApplyRoundedCornerImage(Image image, Color color, float radius, float borderWidth = 0f, Color? borderColor = null)
         {
-            const string AssetPath = "Assets/_Project/Resources/Sprites/UIRoundedRect.png";
-            const int    TexSize   = 128;
-            const int    Radius    = 10;
+            if (image == null)
+                return;
 
-            if (_roundedRectSprite != null) return _roundedRectSprite;
+            image.sprite = null;
+            image.type = Image.Type.Simple;
+            image.color = color;
+            image.material = GetRoundedCornerMaterial(radius, borderWidth, borderColor ?? Color.white);
+        }
 
-            _roundedRectSprite = AssetDatabase.LoadAssetAtPath<Sprite>(AssetPath);
-            if (_roundedRectSprite != null) return _roundedRectSprite;
-
-            // Generate white rounded-rect texture.
-            var tex    = new Texture2D(TexSize, TexSize, TextureFormat.RGBA32, false);
-            var pixels = new Color32[TexSize * TexSize];
-            var white  = new Color32(255, 255, 255, 255);
-            var clear  = new Color32(0, 0, 0, 0);
-
-            for (int y = 0; y < TexSize; y++)
-                for (int x = 0; x < TexSize; x++)
-                    pixels[y * TexSize + x] = RRectInside(x, y, TexSize, Radius) ? white : clear;
-
-            tex.SetPixels32(pixels);
-            tex.Apply();
-
-            string fullPath = System.IO.Path.Combine(
-                Application.dataPath, "_Project/Resources/Sprites/UIRoundedRect.png");
-            System.IO.File.WriteAllBytes(fullPath, tex.EncodeToPNG());
-            Object.DestroyImmediate(tex);
-            AssetDatabase.ImportAsset(AssetPath, ImportAssetOptions.ForceUpdate);
-
-            // Configure 9-slice import: pixelsPerUnit=1 → border of 28 = 28 canvas px.
-            var imp = AssetImporter.GetAtPath(AssetPath) as TextureImporter;
-            if (imp != null)
+        static Material GetRoundedCornerMaterial(float radius, float borderWidth, Color borderColor)
+        {
+            if (_roundedCornerMaterial == null)
             {
-                imp.textureType          = TextureImporterType.Sprite;
-                imp.spriteImportMode     = SpriteImportMode.Single;
-                imp.alphaIsTransparency  = true;
-                imp.filterMode           = FilterMode.Bilinear;
-                imp.spriteBorder         = new Vector4(Radius, Radius, Radius, Radius);
-                imp.spritePixelsPerUnit  = 1f;
-                imp.SaveAndReimport();
+                const string materialPath = "Assets/_Project/Resources/UI/RoundedCornerMaterial.mat";
+                _roundedCornerMaterial = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
+                if (_roundedCornerMaterial == null)
+                    Debug.LogError($"[KingsSceneBuilder] Rounded corner material not found at {materialPath}");
             }
 
-            _roundedRectSprite = AssetDatabase.LoadAssetAtPath<Sprite>(AssetPath);
-            Debug.Log($"[KingsSceneBuilder] Created {AssetPath}");
-            return _roundedRectSprite;
-        }
+            if (_roundedCornerMaterial == null)
+                return null;
 
-        static bool RRectInside(int x, int y, int size, int r)
-        {
-            int s = size - 1;
-            if (x <= r   && y <= r)   return RRectDist(x, y, r,   r)   <= r;
-            if (x >= s-r && y <= r)   return RRectDist(x, y, s-r, r)   <= r;
-            if (x <= r   && y >= s-r) return RRectDist(x, y, r,   s-r) <= r;
-            if (x >= s-r && y >= s-r) return RRectDist(x, y, s-r, s-r) <= r;
-            return true;
-        }
-
-        static float RRectDist(int x, int y, int cx, int cy)
-        {
-            float dx = x - cx, dy = y - cy;
-            return Mathf.Sqrt(dx * dx + dy * dy);
+            var material = new Material(_roundedCornerMaterial)
+            {
+                name = $"{_roundedCornerMaterial.name}_Instance"
+            };
+            material.SetFloat("_UICornerRadius", radius);
+            material.SetFloat("_UIBorderWidth", borderWidth);
+            material.SetColor("_UIBorderColor", borderColor);
+            material.hideFlags = HideFlags.HideAndDontSave;
+            return material;
         }
 
         // Shared palette — sourced from DesignSystem; BtnBg has no matching token.

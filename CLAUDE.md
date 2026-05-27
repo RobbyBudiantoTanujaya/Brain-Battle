@@ -245,7 +245,6 @@ Read tokens in code (e.g., `BuildCells()`, `Start()`), not in `[SerializeField]`
 1. **Never fix SerializeField wiring by hand** — always run `BrainBattle → Build Kings Scene` or `Build Level Select Scene`. If a field is missing from the builder, add it to the builder first.
 2. **Never run the wrong builder** — KingsSceneBuilder owns SampleScene; LevelSelectSceneBuilder owns LevelSelect. They are not interchangeable.
 3. **Never edit both scenes in one task** — confirm scope before starting if a task might touch both. Ask the user first.
-3a. **Never use `manage_scene(action="load")` or `manage_scene(action="save")` via MCP** without explicit user instruction — loading a scene switches the editor's active scene without warning; saving writes to disk permanently. MCP scene/GO changes that are not explicitly requested must remain in-memory only (no save). If a scene inspection is needed, ask the user to open it first.
 4. **Never add a SerializeField to a wired script** without re-running the scene builder — the new field will be null at runtime.
 5. **Never hardcode a hex color or pixel size** that has a DesignSystem token. Use `DesignSystem.X` at call time.
 6. **Never change logic when the task is visual** (and vice versa). Visual = rendering, colors, sizes, layout. Logic = game rules, constraints, state transitions.
@@ -362,9 +361,8 @@ Every time a new task arrives:
 3. **Visual task** (colors, layout, sizes, sprites): touch only rendering code; never change game logic or constraints.
 4. **Logic task** (rules, state, win conditions): touch only logic classes; never change hierarchy or component layout.
 5. **If adding a SerializeField** to any script attached to a built scene: add it to the scene builder's WireAll() first, then re-run the builder.
-6. **If fixing a wiring bug**: do not patch it directly in the scene via MCP — patch the builder, then re-run it.
-7. **Never use Unity MCP screenshots as final evidence** — for any screenshot request, ask the user to capture the Unity Game view manually and send it back for review.
-8. **After completing the task**: update `Assets/_Project/Documentation/Milestones.md`.
+6. **Never use Unity MCP screenshots as final evidence** — for any screenshot request, ask the user to capture the Unity Game view manually and send it back for review.
+7. **After completing the task**: update `Assets/_Project/Documentation/Milestones.md`.
 
 ---
 
